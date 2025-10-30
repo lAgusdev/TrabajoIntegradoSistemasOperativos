@@ -1,0 +1,15 @@
+# depslib dependency file v1.0
+1761860626 source:d:\algoritmos 2\tpsistemaoperativo\src\memoria_ram.cpp
+	"memoria_ram.h"
+
+1761862030 d:\algoritmos 2\tpsistemaoperativo\include\memoria_ram.h
+
+1761860978 source:d:\algoritmos 2\tpsistemaoperativo\main.cpp
+	<iostream>
+
+1731258798 source:d:\algoritmos 2\tpsistemaoperativo\tdacolad.c
+	"tdacolad.h"
+	<stdlib.h>
+
+1761862842 d:\algoritmos 2\tpsistemaoperativo\tdacolad.h
+

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="TPsistemaoperativo" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="Debug">
+				<Option output="bin/Debug/TPsistemaoperativo" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Debug/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-g" />
+					<Add directory="include" />
+				</Compiler>
+			</Target>
+			<Target title="Release">
+				<Option output="bin/Release/TPsistemaoperativo" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Release/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-O2" />
+					<Add directory="include" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+				</Linker>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-Wall" />
+			<Add option="-fexceptions" />
+		</Compiler>
+		<Unit filename="include/DispositivoIO.h" />
+		<Unit filename="include/Planificador.h" />
+		<Unit filename="include/Proceso.h" />
+		<Unit filename="include/buffer_compartido.h" />
+		<Unit filename="include/interrupcion.h" />
+		<Unit filename="include/memoria_ram.h" />
+		<Unit filename="include/sistema_operativo.h" />
+		<Unit filename="main.cpp" />
+		<Unit filename="src/DispositivoIO.cpp" />
+		<Unit filename="src/Planificador.cpp" />
+		<Unit filename="src/Proceso.cpp" />
+		<Unit filename="src/buffer_compartido.cpp" />
+		<Unit filename="src/interrupcion.cpp" />
+		<Unit filename="src/memoria_ram.cpp" />
+		<Unit filename="src/sistema_operativo.cpp" />
+		<Unit filename="tdacolad.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="tdacolad.h" />
+		<Extensions>
+			<lib_finder disable_auto="1" />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>
