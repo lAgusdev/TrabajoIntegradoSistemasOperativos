@@ -1,4 +1,4 @@
-# TrabajoIntegradoSistemasOperativos
+# Trabajo Integrado de Sistemas Operativos
 Integrantes: Puente Villaroel Gaspar y Moar Agustín
 
 # Planificacion
