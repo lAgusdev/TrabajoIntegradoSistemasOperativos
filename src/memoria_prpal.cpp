@@ -1,16 +1,6 @@
 #include "memoria_prpal.h"
 
-class memoria_prpal{
-private:
-    int tamanio_marco;
-    Tlistmarcos marcos;
-public:
-    memoria_prpal(int cant_total_marcos, int tam_marco);
-    int obtener_marcos_libres();
-    TlistPunMem asignar_memoria(int id_proceso, int marcos_requeridos);
-    void liberar_memoria(int id_proceso);
-    void mostrar_estado_memoria();
-};
+
 memoria_prpal::memoria_prpal(int cant_total_marcos, int tam_marco){
     tamanio_marco=tam_marco;
     char id_marco[MAXID];
@@ -30,7 +20,7 @@ int memoria_prpal::obtener_marcos_libres(){
     int i=0;
     Tlistamarcos actmarco=marcos;
     while(actmarco!=NULL){
-        if(actmarco->estaocupado=0){
+        if(actmarco->estaocupado==0){
             i++;
         }
         actmarco=actmarco->sig;

@@ -1,20 +1,8 @@
 #include "cpu.h"
 
-class cpu{
-private:
-        PCB* proceso_actual;
-        TlistRegistros registros_internos;
-        int contador_programa_interno;
-        int estado_libre;
-public:
-    CPU(Reloj* reloj_global);
-    int esta_libre();
-    void asignar_proceso(PCB* nuevo_pcb);
-    void ejecutar_ciclo(DispositivosIO* io_manager);
-    void guardar_y_ceder(PCB* pcb_saliente);
-};
 
-cpu::CPU(Reloj* reloj_global){
+
+cpu::cpu(Reloj* reloj_global){
     proceso_actual=NULL;
     contador_programa_interno =0;
     estado_libre=1;

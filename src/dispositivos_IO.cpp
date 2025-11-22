@@ -1,21 +1,6 @@
 #include "dispositivos_IO.h"
 
-class dispositivos_IO{
-private:
-    char nombre_dispositivo[MAXNOM];
-    enum estado;
-    TcolaPcb cola_espera;
-    char id_proceso_asignado[MAXID];
-    int tiempo_dasbloqueo;
-    int tiempo_promedio_operacion;
-public:
-    dispositivos_IO(char nombre[], int tiempo_promedio);
-    void solicitar_dispositivo(PCB* pcb_solicitante, int duracion_solicitada, int reloj_global);
-    void asignar_proceso_actual(PCB* pcb_asignar, int duracion_operacion, int reloj_global);
-    char* verificar_y_desbloquear(int reloj_global);
-    void atender_siguiente(int reloj_global);
-    int esta_libre();
-};
+
 dispositivos_IO::dispositivos_IO(char nombre[], int tiempo_promedio){
     strcpy(nombre_dispositivo,nombre);
     estado=LIBRE;
@@ -39,6 +24,8 @@ char* dispositivos_IO::verificar_y_desbloquear(int reloj_global){
             estado=LIBRE;
             return id_proceso_asignado;
             atender_siguiente(reloj_global);
+    }else{
+        return NULL;
     }
 }
 void dispositivos_IO::atender_siguiente(int reloj_global){
