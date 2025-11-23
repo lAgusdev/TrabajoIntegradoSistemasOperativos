@@ -1,15 +1,10 @@
 #ifndef BIOS_H
 #define BIOS_H
 
-
-class bios
-{
+class bios{
     public:
-        bios();
-        virtual ~bios();
-
-    protected:
-
+        void compruebaHard(tConfig config);
+        void cargaSO(tConfig config);
     private:
 };
 

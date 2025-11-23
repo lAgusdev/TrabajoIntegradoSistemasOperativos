@@ -1,12 +1,13 @@
 #include <iostream>
+#include "bios.h"
+#include "config.h"
+#include "Sistema_operativo.h"
+
 using namespace std;
 
 void menu(){
     char op1,op2;
-    compruebaHard();
-    cargaSO();
-    iniciaSO();
-    cout<<"Bienvenido a NewOS";
+    cout<<"Bienvenido a DoorOS";
     do{
         cout<<"Selecciones aplicacion: \n \t-a(Aplicacion1)\n \t-b(Aplicacion2)\n \t-c(Aplicacion3)\n \t-d(Aplicacion3)\n \t-e(Aplicacion4)\n";
         cin>>op1;
@@ -22,12 +23,19 @@ void menu(){
             case 'e':
                 break;
         }
-        cout<<"quiere seguir utilizando el sistema:  s / n\n";
+        cout<<"Quiere seguir utilizando el sistema:  s / n\n";
         cin>>op2;
     }while(op2!='n');
 }
 
 int main(){
-    menu();
+    bios biosSys;
+    tConfig config;
+    Sistema_operativo doorOS;
+    if(biosSys.compruebaHard(config))
+        if(biosSys.cargaSO(config))
+            if(doorOS.iniciaSO(config))
+                menu();
+    };
     return 0;
 }
