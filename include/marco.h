@@ -1,7 +1,9 @@
 #ifndef MARCO_H
 #define MARCO_H
+#define MAXID 7
+#include <string.h>
 
-
+#include "PCB.h"
 class marco{
     char id[MAXID];
     char id_proeso_asignado[MAXID];

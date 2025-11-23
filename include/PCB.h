@@ -1,11 +1,18 @@
 #ifndef PCB_H
 #define PCB_H
-
+#define MAXID 7
+#include "estado.h"
+#include "memoria_prpal.h"
+typedef struct nodopunme{
+    memoria_prpal *direccionmemoria;
+    struct nodopunme *sig;
+}TNODOPTROMEM;
+typedef TNODOPTROMEM * TlistPunMem;
 
 class PCB{
     private:
         char id[MAXID];
-        enum estado;
+        estado  Estado;
         int tiempo_llegada;
         int contador_programa;
         TlistRegistros registros_CPU;
@@ -26,7 +33,7 @@ class PCB{
         RegistroE_S solicitar_proxima_ES();//Desencola y devuelve la siguiente operación de E/S de operaciones_E_S para que el módulo E/S la procese
         void acumular_espera(int tiempo);
         char* obtener_id();
-        enum obtener_estado();
+        estado obtener_estado();
         int obtener_rafaga_restante();
         TlistPunMem obtener_punteros_memoria();
         int obtener_tiempo_bloqueo();
@@ -34,7 +41,7 @@ class PCB{
         void ejecutar_ciclo();
         TlistRegistros guardar_contexto():
         void restaurar_contexto();
-        int ha_terminado();
+        int haterminado();
 };
 
 #endif // PCB_H

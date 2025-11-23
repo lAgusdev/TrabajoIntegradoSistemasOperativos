@@ -46,7 +46,7 @@ TlistPunMem memoria_prpal::asignar_memoria(int id_proceso, int marcos_requeridos
 void memoria_prpal::liberar_memoria(int id_proceso){
      Tlistamarcos actmarco=marcos;
      while(actmarco!=NULL){
-        if(strcmp(actmarc->obt_id_proceso_asignado(),id_proceso)){
+        if(strcmp(actmarc->obt_id_proceso_asignado(), id_proceso) == 0){
             actmarco->liberar();
         }
         actmarco=actmarco->sig;

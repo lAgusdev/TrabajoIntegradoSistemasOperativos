@@ -2,9 +2,9 @@
 
 
 marco::marco(int id_m){
-    strcpy(id,id_m);
+    strcpy(id, to_string(id_m).c_str());
     Ocupado=0;
-    id_proeso_asignado="LIBRE";
+    strcpy(id_proeso_asignado, "LIBRE");
 }
 int marco::esta_ocupado(){
     return Ocupado;
@@ -19,8 +19,4 @@ void marco::liberar(){
 }
 char* marco::obtener_id_proceso_asignado(){
     return id_proeso_asignado;
-}
-marco::~marco()
-{
-    //dtor
 }
