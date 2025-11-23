@@ -61,7 +61,10 @@ void memoria_prpal::mostrar_estado_memoria(){
     int i=1;
     std::cout<<"marco\t id_proceso_asignado\n";
     while(actmarco != nullptr){
-        std::cout<<i<<"\t"<<actmarco->contenido->obt_id_proceso_asignado()<<std::endl;
+        int id_proceso = actmarco->contenido->obt_id_proceso_asignado();
+        if(id_proceso != -1){
+            std::cout<<i<<"\t"<<id_proceso<<std::endl;
+        }
         actmarco=actmarco->sig;
         i++;
     }

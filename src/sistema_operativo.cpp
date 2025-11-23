@@ -1,44 +1,46 @@
 #include "Sistema_operativo.h"
 #include <cstdio>
-#include <thread>
-#include <chrono>
+#include <thread>   // Para usar sleep (pausas reales)
+#include <chrono>   // Para manejar milisegundos
 
-
+// CONSTRUCTOR: Inicializa todos los componentes del sistema operativo
 Sistema_operativo::Sistema_operativo(config* conf) {
-     reloj_global = new Reloj();
-     unidad_central_proceso = new cpu();
-     gestor_memoria = new memoria_prpal(256, 4096);
-     cola_listos = new ColaSincronizada(100);
-     planificador_largo_plazo = new memoria_sec();
-     procesos_terminados = nullptr;
-     dispositivos = nullptr;
-     tiempo_simulacion_ms = 100; // 100ms por ciclo de CPU
+     reloj_global = new Reloj();                          // Reloj para contar el tiempo
+     unidad_central_proceso = new cpu();                  // CPU que ejecuta procesos
+     gestor_memoria = new memoria_prpal(256, 4096);       // Memoria con 256 marcos de 4096 bytes
+     cola_listos = new ColaSincronizada(100);             // Cola de procesos listos (sincronizada)
+     planificador_largo_plazo = new memoria_sec();        // Memoria secundaria (procesos nuevos)
+     procesos_terminados = nullptr;                       // Lista de procesos terminados
+     dispositivos = nullptr;                              // Dispositivos de E/S
+     tiempo_simulacion_ms = 100;                          // Cada ciclo = 100ms reales
      std::cout<<"[SO] Sistema Operativo inicializado (Algoritmo: FIFO)"<<std::endl;
      std::cout<<"[SO] Tiempo por ciclo de CPU: "<<tiempo_simulacion_ms<<"ms"<<std::endl;
 }
 
+// CARGAR PROCESOS DESDE ARCHIVO: Lee procesos.txt y los carga en memoria secundaria
 void Sistema_operativo::cargar_procesos_desde_archivo(const char* nombre_archivo){
-    FILE* archivo = fopen(nombre_archivo, "rt");
+    FILE* archivo = fopen(nombre_archivo, "rt");  // Abre el archivo en modo lectura
     if(archivo == nullptr){
         std::cout<<"[SO] No se pudo abrir "<<nombre_archivo<<std::endl;
         return;
     }
     
-    char id[MAXID];
-    int tiempo_llegada, rafaga, tamanio;
-    int procesos_cargados = 0;
+    char id[MAXID];                    // ID del proceso (nombre)
+    int tiempo_llegada, rafaga, tamanio;  // Datos del proceso
+    int procesos_cargados = 0;         // Contador de procesos
     
     std::cout<<"[SO] Cargando procesos desde "<<nombre_archivo<<"..."<<std::endl;
     
+    // Lee línea por línea: ID, tiempo_llegada, rafaga, tamaño
     while(fscanf(archivo, "%[^,], %d, %d, %d\n", id, &tiempo_llegada, &rafaga, &tamanio) == 4){
-        // Crear cola de operaciones E/S vacia (simplificado)
+        // Crear cola de operaciones E/S vacía
         TcolaOp operaciones_es;
         iniciac(operaciones_es);
         
-        // Crear PCB
+        // Crear el PCB (Process Control Block) con los datos
         PCB* nuevo_pcb = new PCB(id, tiempo_llegada, rafaga, tamanio, operaciones_es);
         
-        // Agregar a memoria secundaria (cola de nuevos)
+        // Agregar a memoria secundaria (estado NUEVO)
         planificador_largo_plazo->cargar_proceso(*nuevo_pcb);
         procesos_cargados++;
         
@@ -49,11 +51,13 @@ void Sistema_operativo::cargar_procesos_desde_archivo(const char* nombre_archivo
     std::cout<<"[SO] "<<procesos_cargados<<" procesos cargados en memoria secundaria"<<std::endl;
 }
 
+// CREAR PROCESO INTERACTIVO: Permite al usuario crear un proceso manualmente
 void Sistema_operativo::crear_proceso_interactivo(){
-    char id[MAXID];
-    int tiempo_llegada, rafaga, tamanio;
-    int num_operaciones_es;
+    char id[MAXID];                   // ID del proceso
+    int tiempo_llegada, rafaga, tamanio;  // Datos del proceso
+    int num_operaciones_es;           // Cuántas operaciones de E/S tendrá
     
+    // Solicitar datos al usuario
     std::cout<<"\n=== CREAR NUEVO PROCESO ==="<<std::endl;
     std::cout<<"ID del proceso (max "<<MAXID-1<<" caracteres): ";
     std::cin>>id;
@@ -74,20 +78,21 @@ void Sistema_operativo::crear_proceso_interactivo(){
     TcolaOp operaciones_es;
     iniciac(operaciones_es);
     
+    // Solicitar datos de cada operación E/S
     for(int i = 0; i < num_operaciones_es; i++){
         TELEMENTOCOP operacion;
         std::cout<<"\n  Operacion E/S #"<<(i+1)<<":"<<std::endl;
-        std::cout<<"    Dispositivo (DISK/PRINTER/NETWORK): ";
+        std::cout<<"    Dispositivo (DISCO/IMPRESORA/RED): ";
         std::cin>>operacion.id_dispositivo;
         std::cout<<"    Duracion (ciclos): ";
         std::cin>>operacion.duracion;
         std::cout<<"    Tipo (0=lectura, 1=escritura): ";
         std::cin>>operacion.tipo_operacion;
         
-        ponec(operaciones_es, operacion);
+        ponec(operaciones_es, operacion);  // Agregar a la cola
     }
     
-    // Crear PCB y agregar a memoria secundaria
+    // Crear PCB con todos los datos y agregarlo a memoria secundaria
     PCB* nuevo_pcb = new PCB(id, tiempo_llegada, rafaga, tamanio, operaciones_es);
     planificador_largo_plazo->cargar_proceso(*nuevo_pcb);
     
@@ -95,6 +100,7 @@ void Sistema_operativo::crear_proceso_interactivo(){
     std::cout<<"[SO] El proceso sera admitido cuando haya memoria disponible."<<std::endl;
 }
 
+// MOSTRAR ESTADO DEL SISTEMA: Muestra información actual del sistema
 void Sistema_operativo::mostrar_estado_sistema(){
     std::cout<<"\n=== ESTADO DEL SISTEMA ==="<<std::endl;
     std::cout<<"Tick actual: "<<reloj_global->obtener_tick()<<std::endl;
@@ -105,40 +111,46 @@ void Sistema_operativo::mostrar_estado_sistema(){
     std::cout<<"==========================="<<std::endl;
 }
 
+// Verifica si hay trabajo pendiente (procesos por ejecutar)
 bool Sistema_operativo::hay_trabajo_pendiente() {
-    bool cpu_ocupada = !unidad_central_proceso->esta_libre();
-    bool listos_pendientes = !cola_listos->vacia();
-    bool nuevos_pendientes = planificador_largo_plazo->hay_procesos_pendientes();
+    bool cpu_ocupada = !unidad_central_proceso->esta_libre();        // ¿CPU está ejecutando algo?
+    bool listos_pendientes = !cola_listos->vacia();                  // ¿Hay procesos esperando?
+    bool nuevos_pendientes = planificador_largo_plazo->hay_procesos_pendientes();  // ¿Hay procesos nuevos?
     
     return cpu_ocupada || listos_pendientes || nuevos_pendientes;
 }
 
+// Maneja un proceso que terminó su ejecución
 void Sistema_operativo::manejar_terminacion(PCB* pcb_terminado) {
     int tick_actual = reloj_global->obtener_tick();
-    pcb_terminado->cambio_a_terminado(tick_actual);
+    pcb_terminado->cambio_a_terminado(tick_actual);  // Cambia estado a TERMINADO
     // TODO: convertir char* a int para liberar_memoria o cambiar firma
     // gestor_memoria->liberar_memoria(pcb_terminado->obtener_id());
     // TODO: usar lista enlazada correcta para procesos_terminados
 }
 
+// PLANIFICADOR DE LARGO PLAZO: Decide qué procesos NUEVOS pasan a LISTOS
 void Sistema_operativo::planificar_largo_plazo() {
+    // Si hay procesos nuevos esperando...
     if(planificador_largo_plazo->hay_procesos_pendientes()){
         PCB* pcb_nuevo = planificador_largo_plazo->obtener_proceso_para_admision();
         if(pcb_nuevo != nullptr){
             // Calcular marcos necesarios (simplificado: 1 marco por proceso)
             int marcos_necesarios = 1;
             
+            // ¿Hay memoria disponible?
             if(gestor_memoria->obtener_marcos_libres() >= marcos_necesarios){
                 std::cout<<"[Planificador LP] Admitiendo proceso "<<pcb_nuevo->obtener_id()<<" (marcos libres: "<<gestor_memoria->obtener_marcos_libres()<<")"<<std::endl;
                 
-                // Asignar ID numerico simple para el proceso
+                // Asignar ID numérico simple para el proceso
                 int id_proceso = reloj_global->obtener_tick() % 1000;
                 TlistPunMem punteros = gestor_memoria->asignar_memoria(id_proceso, marcos_necesarios);
                 
+                // Cambiar de NUEVO → LISTO y agregarlo a la cola
                 pcb_nuevo->cambio_a_listo(punteros);
                 cola_listos->Aniadir_a_Cola_Listos(pcb_nuevo);
                 
-                // Eliminar de memoria secundaria
+                // Eliminar de memoria secundaria (ya fue admitido)
                 char* id = pcb_nuevo->obtener_id();
                 planificador_largo_plazo->eliminar_proceso(id);
             } else {
@@ -148,17 +160,19 @@ void Sistema_operativo::planificar_largo_plazo() {
     }
 }
 
+// PLANIFICADOR DE CORTO PLAZO (FIFO): Decide qué proceso LISTO pasa a EJECUCIÓN
 void Sistema_operativo::planificar_corto_plazo() {
     // FIFO: Solo asignar proceso si CPU está libre
     if(unidad_central_proceso->esta_libre() && !cola_listos->vacia()){
-        PCB* pcb_listo = cola_listos->Retirar_de_Cola_Listos();
+        PCB* pcb_listo = cola_listos->Retirar_de_Cola_Listos();  // Saca el primero de la cola
         if(pcb_listo != nullptr){
             std::cout<<"[Planificador CP - FIFO] Asignando proceso "<<pcb_listo->obtener_id()<<" a CPU"<<std::endl;
-            unidad_central_proceso->asignar_proceso(pcb_listo);
+            unidad_central_proceso->asignar_proceso(pcb_listo);  // LISTO → EJECUCIÓN
         }
     }
 }
 
+// Gestionar desbloqueos de procesos que esperaban E/S
 void Sistema_operativo::gestionar_desbloqueos() {
     // Simplificado: verificar dispositivo único si existe
     if(dispositivos != nullptr){
@@ -172,38 +186,46 @@ void Sistema_operativo::gestionar_desbloqueos() {
     }
 }
 
+// EJECUTAR SIMULACIÓN: Bucle principal que ejecuta todo el sistema operativo
 void Sistema_operativo::ejecutar_simulacion() {
     std::cout<<"\n========== INICIO DE SIMULACION (FIFO) ==========\n"<<std::endl;
-    int ciclo_limite = 100;
+    int ciclo_limite = 100;  // Máximo 100 ticks para evitar loops infinitos
     
+    // Bucle principal: mientras haya trabajo y no supere el límite
     while(hay_trabajo_pendiente() && reloj_global->obtener_tick() < ciclo_limite) {
         int tick_actual = reloj_global->obtener_tick();
         std::cout<<"\n--- Tick "<<tick_actual<<" ("<<(tick_actual * tiempo_simulacion_ms)<<"ms) ---"<<std::endl;
         
-        // Simular tiempo real
+        // Simular tiempo real: pausa de 100ms por cada ciclo
         std::this_thread::sleep_for(std::chrono::milliseconds(tiempo_simulacion_ms));
         
+        // 1. Verificar si hay procesos bloqueados que ya terminaron E/S
         gestionar_desbloqueos();
+        
+        // 2. Planificador de largo plazo: NUEVO → LISTO (admisión a memoria)
         planificar_largo_plazo();
         
-        // Verificar si hay proceso en ejecucion
+        // 3. Verificar si hay proceso en ejecución
         if(!unidad_central_proceso->esta_libre()) {
             PCB* proceso_actual = unidad_central_proceso->obtener_proceso_actual();
             
-            // Verificar si el proceso termino
+            // ¿El proceso terminó su ráfaga?
             if(proceso_actual->haterminado()){
                 std::cout<<"[SO] Proceso "<<proceso_actual->obtener_id()<<" ha terminado"<<std::endl;
                 proceso_actual->cambio_a_terminado(tick_actual);
-                unidad_central_proceso->guardar_y_ceder(proceso_actual);
+                unidad_central_proceso->guardar_y_ceder(proceso_actual);  // Libera la CPU
                 manejar_terminacion(proceso_actual);
             }
-            // FIFO: proceso continúa hasta terminar (no hay quantum)
+            // FIFO: proceso continúa hasta terminar (no hay quantum ni preempción)
             else {
-                unidad_central_proceso->ejecutar_ciclo(dispositivos);
+                unidad_central_proceso->ejecutar_ciclo(dispositivos);  // Ejecuta 1 ciclo
             }
         }
         
+        // 4. Planificador de corto plazo: LISTO → EJECUCIÓN (asignar a CPU)
         planificar_corto_plazo();
+        
+        // 5. Avanzar el reloj global
         reloj_global->avanzar_tick();
     }
     
