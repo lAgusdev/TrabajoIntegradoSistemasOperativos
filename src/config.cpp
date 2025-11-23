@@ -4,16 +4,11 @@ config::config(){
     FILE *configHard, *configDisIO;
     configHard = fopen("configHard.txt","rt");
     configDisIO = fopen("configDisIO.txt","rt");
-    cpu CPUSet;
     memoria_prpal memPSet;
-    memoria_sec memSSet;
     dispositivos_IO disIOSet, newDisIO;
     char nombre[MAXNOM];
     int cant_total_marcos, tam_marco, promedio;
     if(configHard != NULL){
-        cpu CPUSet();
-        CPU = CPUSet;
-
         fscanf(configHard, "%d, %d", &cant_total_marcos, &tam_marco)
         memoria_prpal memPSet(cant_total_marcos, tam_marco);
         memP = memPSet;

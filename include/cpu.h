@@ -9,7 +9,7 @@ private:
     int contador_programa_interno;
     int estado_libre;
 public:
-    cpu(Reloj* reloj_global);
+    cpu();
     int esta_libre();
     void asignar_proceso(PCB* nuevo_pcb);
     void ejecutar_ciclo(DispositivosIO* io_manager);
