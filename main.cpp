@@ -1,12 +1,14 @@
 #include <iostream>
-
 using namespace std;
-#define MAXREG
 
 void menu(){
     char op1,op2;
+    compruebaHard();
+    cargaSO();
+    iniciaSO();
+    cout<<"Bienvenido a NewOS";
     do{
-        cout<<"seleccione una opcion:\n";
+        cout<<"Selecciones aplicacion: \n \t-a(Aplicacion1)\n \t-b(Aplicacion2)\n \t-c(Aplicacion3)\n \t-d(Aplicacion3)\n \t-e(Aplicacion4)\n";
         cin>>op1;
         switch(op1){
             case 'a':
