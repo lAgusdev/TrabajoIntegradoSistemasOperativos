@@ -1,11 +1,15 @@
 #include "Reloj.h"
 
-Reloj::Reloj()
-{
-    //ctor
+Reloj::Reloj() : tick_actual(0) {
 }
 
-Reloj::~Reloj()
-{
-    //dtor
+Reloj::~Reloj() {
+}
+
+int Reloj::obtener_tick() {
+    return tick_actual;
+}
+
+void Reloj::avanzar_tick() {
+    tick_actual++;
 }

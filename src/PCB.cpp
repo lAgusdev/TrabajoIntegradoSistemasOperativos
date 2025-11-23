@@ -10,7 +10,7 @@ PCB::PCB(char in_Id[MAXID], int in_tiempo_llegada,int in_tiempo_rafaga_restante,
 
         PCB::carga_operaciones(&in_operaciones_E_S);
 
-        registros_CPU=NULL;
+        registros_CPU=nullptr;
         contador_programa=0;
         punteros_memoria=NULL;
         tiempo_bloqueo=0;
@@ -26,7 +26,7 @@ void PCB::carga_operaciones(TcolaOp * in_operaciones_E_S){
     TELEMENTOCOP elem;
     while(!vaciac(*in_operaciones_E_S)){
         sacac(in_operaciones_E_S,&elem);
-        ponec(&operaciones_E_S,elem);
+        ponec(operaciones_E_S,elem);
     }
 }
 void PCB::cambio_a_ejecucion(){
@@ -46,7 +46,8 @@ RegistroE_S PCB::solicitar_proxima_ES(){
         sacac(&operaciones_E_S,&elem);
         return elem;
     }else{
-        return NULL;
+        TELEMENTOCOP vacio = {0};
+        return vacio;
     }
 }
 void PCB::acumular_espera(int tiempo){
@@ -55,7 +56,7 @@ void PCB::acumular_espera(int tiempo){
 char* PCB::obtener_id(){
     return id;
 }
-enum PCB::obtener_estado(){
+estado PCB::obtener_estado(){
     return Estado;
 }
 int PCB::obtener_rafaga_restante(){
@@ -82,7 +83,4 @@ int PCB::haterminado(){
         return 0;
     }
 
-}
-PCB::~PCB(){
-    //dtor
 }

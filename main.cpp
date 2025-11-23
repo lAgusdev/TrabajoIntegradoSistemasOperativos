@@ -30,11 +30,11 @@ void menu(){
 
 int main(){
     bios biosSys;
-    tConfig config;
-    Sistema_operativo doorOS;
-    if(biosSys.compruebaHard(config))
-        if(biosSys.cargaSO(config))
-            if(doorOS.iniciaSO(config))
-                menu();
+    config conf;
+    biosSys.compruebaHard(conf);
+    biosSys.cargaSO(conf);
+    Sistema_operativo doorOS(&conf);
+    doorOS.ejecutar_simulacion();
+    std::cout << "Simulacion completada." << std::endl;
     return 0;
 }

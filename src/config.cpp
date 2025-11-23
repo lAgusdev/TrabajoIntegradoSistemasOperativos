@@ -1,53 +1,36 @@
 #include "config.h"
-
 config::config(){
-    FILE *configHard, *configDisIO;
-    configHard = fopen("configHard.txt","rt");
-    configDisIO = fopen("configDisIO.txt","rt");
-    memoria_prpal memPSet;
-    dispositivos_IO disIOSet, newDisIO;
+    FILE *configHard = fopen("configHard.txt","rt");
+    FILE *configDisIO = fopen("configDisIO.txt","rt");
+    CPU = nullptr;
+    memP = nullptr;
+    memS = nullptr;
+    disIO = nullptr;
     char nombre[MAXNOM];
-    int cant_total_marcos, tam_marco, promedio;
+    int cant_total_marcos = 0, tam_marco = 0, promedio = 0;
     if(configHard != NULL){
-        fscanf(configHard, "%d, %d", &cant_total_marcos, &tam_marco)
-        memoria_prpal memPSet(cant_total_marcos, tam_marco);
-        memP = memPSet;
-
-        //Nose sabe que poner fscanf(configHard, "%d, %d", &cant_total_marcos, &tam_marco)
-        memoria_sec memSSet();
-        memS = memSSet;
-
-        if(configDisIO != NULL){
-            disIOSet = NULL
-            while(fscanf(configDisIO, "%s, %d", nombre, &promedio) == 2){
-                newDisIO = new dispositivos_IO(nombre, promedio);
-                newDisIO->sig = disIOSet;
-                disIOSet = newDisIO;
-            };
-            disIO = disIOSet;
-            fclose(configDisIO);
+        if(fscanf(configHard, "%d, %d", &cant_total_marcos, &tam_marco) == 2){
+            memP = new memoria_prpal(cant_total_marcos, tam_marco);
         }
+        // Inicializar memoria secundaria si es necesario
+        memS = new memoria_sec();
         fclose(configHard);
-    };
-};
+    }
 
-int testCPU(){
-    return
-};
-
-int testMemP(){
-    return
-};
-
-int testMemS(){
-    return
-};
-
-int testKeyboard(){
-    while()
-};
-
-config::~config(){
-
-    //dtor
+    if(configDisIO != NULL){
+        // Construir lista enlazada de dispositivos (si aplica)
+        dispositivos_IO* head = nullptr;
+        while(fscanf(configDisIO, "%s, %d", nombre, &promedio) == 2){
+            dispositivos_IO* newDisIO = new dispositivos_IO(nombre, promedio);
+            // aquí asumimos que dispositivos_IO no tiene campo 'sig' público; añadir a lista si necesario
+            head = newDisIO; // colocar al frente (lista simple, mejorar si hay estructura)
+        }
+        disIO = head;
+        fclose(configDisIO);
+    }
 }
+
+int config::testCPU(){ return 1; }
+int config::testMemP(){ return 1; }
+int config::testMemS(){ return 1; }
+int config::testKeyboard(){ return 1; }

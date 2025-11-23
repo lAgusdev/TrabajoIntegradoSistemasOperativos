@@ -1,7 +1,7 @@
 #include "Estructuras.h"
 
 // ==========================================================================
-// IMPLEMENTACIÓN DE FUNCIONES DE COLA (TcolaOp)
+// IMPLEMENTACIï¿½N DE FUNCIONES DE COLA (TcolaOp)
 // ==========================================================================
 
 // Inicializa la cola poniendo los punteros a null
@@ -10,7 +10,7 @@ void iniciac(TcolaOp& c) {
     c.final = nullptr;
 }
 
-// Devuelve 1 (true) si la cola está vacía, 0 (false) si tiene elementos
+// Devuelve 1 (true) si la cola estï¿½ vacï¿½a, 0 (false) si tiene elementos
 int vaciac(TcolaOp c) {
     return (c.frente == nullptr);
 }
@@ -24,10 +24,10 @@ void ponec(TcolaOp& c, TELEMENTOCOP dato) {
 
     // 2. Enlazarlo
     if (c.final == nullptr) {
-        // Si estaba vacía, el nuevo es tanto el frente como el final
+        // Si estaba vacï¿½a, el nuevo es tanto el frente como el final
         c.frente = nuevo;
     } else {
-        // Si ya había elementos, lo enganchamos al último
+        // Si ya habï¿½a elementos, lo enganchamos al ï¿½ltimo
         c.final->sig = nuevo;
     }
 
@@ -37,7 +37,7 @@ void ponec(TcolaOp& c, TELEMENTOCOP dato) {
 
 // Saca un elemento del frente de la cola
 void sacac(TcolaOp* c, TELEMENTOCOP* dato) {
-    // Protección básica contra cola vacía
+    // Protecciï¿½n bï¿½sica contra cola vacï¿½a
     if (c->frente == nullptr) {
         return;
     }
@@ -51,46 +51,17 @@ void sacac(TcolaOp* c, TELEMENTOCOP* dato) {
     // 3. Avanzar el frente
     c->frente = aux->sig;
 
-    // 4. Si la cola quedó vacía, actualizar también el final
+    // 4. Si la cola quedï¿½ vacï¿½a, actualizar tambiï¿½n el final
     if (c->frente == nullptr) {
         c->final = nullptr;
     }
 
-    // 5. Liberar la memoria del nodo extraído
-    delete aux;
-}
-// ==========================================================================
-// IMPLEMENTACIÓN DE COLA DE OPERACIONES (TcolaOp)
-// ==========================================================================
-void iniciac(TcolaOp& c) {
-    c.frente = nullptr;
-    c.final = nullptr;
-}
-
-int vaciac(TcolaOp c) {
-    return (c.frente == nullptr);
-}
-
-void ponec(TcolaOp& c, TELEMENTOCOP dato) {
-    NodoColaOp* nuevo = new NodoColaOp;
-    nuevo->dato = dato;
-    nuevo->sig = nullptr;
-    if (c.final == nullptr) c.frente = nuevo;
-    else c.final->sig = nuevo;
-    c.final = nuevo;
-}
-
-void sacac(TcolaOp* c, TELEMENTOCOP* dato) {
-    if (c->frente == nullptr) return;
-    NodoColaOp* aux = c->frente;
-    *dato = aux->dato;
-    c->frente = aux->sig;
-    if (c->frente == nullptr) c->final = nullptr;
+    // 5. Liberar la memoria del nodo extraï¿½do
     delete aux;
 }
 
 // ==========================================================================
-// [NUEVO] IMPLEMENTACIÓN DE COLA DE PCBs (TcolaPcb)
+// [NUEVO] IMPLEMENTACIï¿½N DE COLA DE PCBs (TcolaPcb)
 // ==========================================================================
 
 void iniciac(TcolaPcb& c) {
@@ -102,11 +73,11 @@ int vaciac(TcolaPcb c) {
     return (c.frente == nullptr);
 }
 
-// Versión 1: Recibe PCB& (referencia) -> Guarda su dirección
+// Versiï¿½n 1: Recibe PCB& (referencia) -> Guarda su direcciï¿½n
 // Esto soluciona tu llamada: ponec(cola_espera, *pcb_solicitante);
 void ponec(TcolaPcb& c, PCB& dato) {
     NodoPCB* nuevo = new NodoPCB;
-    nuevo->PCB = &dato; // Guardamos la dirección del objeto original
+    nuevo->PCB = &dato; // Guardamos la direcciï¿½n del objeto original
     nuevo->sig = nullptr;
 
     if (c.final == nullptr) c.frente = nuevo;
@@ -114,7 +85,7 @@ void ponec(TcolaPcb& c, PCB& dato) {
     c.final = nuevo;
 }
 
-// Versión 2: Recibe PCB* (puntero) -> Guarda el puntero directo
+// Versiï¿½n 2: Recibe PCB* (puntero) -> Guarda el puntero directo
 void ponec(TcolaPcb& c, PCB* dato) {
     if (dato == nullptr) return;
     NodoPCB* nuevo = new NodoPCB;
@@ -137,7 +108,7 @@ void sacac(TcolaPcb* c, TELEMENTOCPCB* dato) {
     c->frente = aux->sig;
     if (c->frente == nullptr) c->final = nullptr;
 
-    // NOTA: No hacemos 'delete aux->PCB' porque borraríamos el proceso real.
+    // NOTA: No hacemos 'delete aux->PCB' porque borrarï¿½amos el proceso real.
     // Solo borramos el nodo de la cola.
     delete aux;
 }

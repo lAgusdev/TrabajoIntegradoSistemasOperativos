@@ -4,13 +4,13 @@
 
 class Reloj
 {
+    private:
+        int tick_actual;
     public:
         Reloj();
         virtual ~Reloj();
-
-    protected:
-
-    private:
+        int obtener_tick();
+        void avanzar_tick();
 };
 
 #endif // RELOJ_H

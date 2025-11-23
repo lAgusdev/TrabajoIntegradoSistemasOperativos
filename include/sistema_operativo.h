@@ -8,23 +8,25 @@
 #include "dispositivos_IO.h"
 #include "ColaSincronizada.h"
 #include "PCB.h"
+#include "config.h"
 
 class Sistema_operativo{
     private:
         Reloj* reloj_global;
-        CPU* unidad_central_proceso;
+        cpu* unidad_central_proceso;
         memoria_prpal* gestor_memoria;
         memoria_sec* planificador_largo_plazo;
-        TLista<dispositivos_IO>* dispositivos;
+        dispositivos_IO* dispositivos; // Simplificado, expandir si se necesita lista
         ColaSincronizada* cola_listos;
-        TListaPCB* procesos_terminados;
+        TlistaPCB procesos_terminados;
     public:
-        Sistema_operativo(Config* conf);
+        Sistema_operativo(config* conf);
         void ejecutar_simulacion();
         void planificar_largo_plazo();
         void planificar_corto_plazo();
         void gestionar_desbloqueos();
         void manejar_terminacion(PCB* pcb_terminado);
+        bool hay_trabajo_pendiente();
 };
 
 #endif // SISTEMA_OPERATIVO_H

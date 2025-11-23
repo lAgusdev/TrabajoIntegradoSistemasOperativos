@@ -6,10 +6,10 @@
 #include "dispositivos_IO.h"
 
 class config{
-    cpu CPU;
-    memoria_prpal memP;
-    memoria_sec memS;
-    dispositivos_IO disIO;
+    cpu* CPU;
+    memoria_prpal* memP;
+    memoria_sec* memS;
+    dispositivos_IO* disIO;
     public:
         config();
         int testCPU();

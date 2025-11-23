@@ -1,6 +1,5 @@
 #ifndef DISPOSITIVOS_IO_H
 #define DISPOSITIVOS_IO_H
-#define MAXID 7
 #define MAXNOM 20
 #include "Estado_IO.h"
 #include "Estructuras.h"

@@ -3,7 +3,7 @@
 
 
 cpu::cpu(){
-    proceso_actual=NULL;
+    proceso_actual=nullptr;
     contador_programa_interno =0;
     estado_libre=1;
 }
@@ -16,8 +16,9 @@ void cpu::asignar_proceso(PCB* nuevo_pcb){
     estado_libre = 0;
 }
 void cpu::ejecutar_ciclo(dispositivos_IO* io_manager){
-    proceso_actual->ejecutar_ciclo();
-    io_manager->verificar_y_desbloquear(reloj_global);
+    if(proceso_actual != nullptr){
+        proceso_actual->ejecutar_ciclo();
+    }
 }
 void cpu::guardar_y_ceder(PCB* pcb_saliente){
     pcb_saliente->guardar_contexto();

@@ -1,4 +1,6 @@
 #include "dispositivos_IO.h"
+#include "PCB.h"
+#include <cstring>
 #include "string.h"
 
 dispositivos_IO::dispositivos_IO(char nombre[], int tiempo_promedio){
@@ -16,23 +18,23 @@ void dispositivos_IO::solicitar_dispositivo(PCB* pcb_solicitante, int duracion_s
 }
 void dispositivos_IO::asignar_proceso_actual(PCB* pcb_asignar, int duracion_operacion, int reloj_global){
     estado=Estado_IO::OCUPADO;
-    id_proceso_asignado=pcb_asignar->obtener_id();
+    strcpy(id_proceso_asignado, pcb_asignar->obtener_id());
     tiempo_dasbloqueo=reloj_global+duracion_operacion;
 }
 char* dispositivos_IO::verificar_y_desbloquear(int reloj_global){
     if(tiempo_dasbloqueo==reloj_global){
             estado=Estado_IO::LIBRE;
-            return id_proceso_asignado;
             atender_siguiente(reloj_global);
+            return id_proceso_asignado;
     }else{
-        return NULL;
+        return nullptr;
     }
 }
 void dispositivos_IO::atender_siguiente(int reloj_global){
     TELEMENTOCPCB elem;
     if(!vaciac(cola_espera)){
         sacac(&cola_espera,&elem);
-        asignar_proceso_actual(elem,elem.obt_tiempo_rafaga_restante,reloj_global);
+        asignar_proceso_actual(elem,elem->obtener_rafaga_restante(),reloj_global);
     }else{
         estado=Estado_IO::LIBRE;
     }

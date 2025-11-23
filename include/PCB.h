@@ -1,6 +1,5 @@
 #ifndef PCB_H
 #define PCB_H
-#define MAXID 7
 #include "estado.h"
 #include "Estructuras.h"
 #include <iostream>
@@ -34,7 +33,7 @@ class PCB{
         int obtener_tiempo_bloqueo();
 
         void ejecutar_ciclo();
-        TlistRegistros guardar_contexto():
+        TlistRegistros guardar_contexto();
         void restaurar_contexto();
         int haterminado();
 };

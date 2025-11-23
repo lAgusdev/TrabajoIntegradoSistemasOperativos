@@ -1,22 +1,23 @@
 #include "marco.h"
+#include <string>
+#include <cstring>
 
-
-marco::marco(int id_m){
-    strcpy(id, to_string(id_m).c_str());
+marco::marco(char* id_m){
+    strcpy(id, id_m);
     Ocupado=0;
-    strcpy(id_proeso_asignado, "LIBRE");
+    id_proceso_asignado_int = -1;
 }
 int marco::esta_ocupado(){
     return Ocupado;
 }
-void marco::asignar(char nuevo_id_proceso[]){
+void marco::asignar(int nuevo_id_proceso){
      Ocupado=1;
-     strcpy(id_proeso_asignado,nuevo_id_proceso);
+     id_proceso_asignado_int = nuevo_id_proceso;
 }
 void marco::liberar(){
     Ocupado=0;
-    strcpy(id_proeso_asignado,"LIBRE");
+    id_proceso_asignado_int = -1;
 }
-char* marco::obtener_id_proceso_asignado(){
-    return id_proeso_asignado;
+int marco::obt_id_proceso_asignado(){
+    return id_proceso_asignado_int;
 }
