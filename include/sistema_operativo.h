@@ -19,8 +19,7 @@ class Sistema_operativo{
         dispositivos_IO* dispositivos; // Simplificado, expandir si se necesita lista
         ColaSincronizada* cola_listos;
         TlistaPCB procesos_terminados;
-        int quantum;
-        int ciclos_actuales;
+        int tiempo_simulacion_ms; // Tiempo de cada tick en milisegundos
     public:
         Sistema_operativo(config* conf);
         void ejecutar_simulacion();
@@ -30,6 +29,8 @@ class Sistema_operativo{
         void manejar_terminacion(PCB* pcb_terminado);
         bool hay_trabajo_pendiente();
         void cargar_procesos_desde_archivo(const char* nombre_archivo);
+        void crear_proceso_interactivo();
+        void mostrar_estado_sistema();
 };
 
 #endif // SISTEMA_OPERATIVO_H

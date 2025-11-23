@@ -97,21 +97,64 @@ Estructura de datos que contiene:
 
 ## 4. Algoritmo de Planificación
 
-### Round Robin
-- **Quantum:** 3 ciclos de reloj
-- **Política:** FIFO con tiempo compartido
+### FIFO (First In First Out)
+- **Política:** El primer proceso que llega es el primero en ser atendido
+- **No hay preempción:** El proceso ejecuta hasta terminar o solicitar E/S
 - **Cola de listos:** ColaSincronizada (productor-consumidor)
 
 **Funcionamiento:**
-1. Proceso entra a EJECUCION desde LISTO
-2. Ejecuta hasta 3 ciclos máximo
+1. Proceso entra a EJECUCION desde LISTO (orden de llegada)
+2. Ejecuta hasta completar su ráfaga (sin interrupciones)
 3. Si termina: pasa a TERMINADO
-4. Si agota quantum: vuelve a LISTO (fin de cola)
-5. Si pide E/S: pasa a BLOQUEADO
+4. Si pide E/S: pasa a BLOQUEADO
+5. Cuando finaliza E/S: vuelve a LISTO (al final de la cola)
+
+**Ventajas:**
+- Simple de implementar
+- Sin overhead de cambio de contexto frecuente
+- Justo en orden de llegada
+
+**Desventajas:**
+- Tiempos de espera pueden ser largos
+- Efecto convoy (procesos cortos esperan a largos)
 
 ---
 
-## 5. Archivos de Configuración
+## 5. Interfaz de Usuario
+
+### Menú Principal Interactivo
+```
+=========================================
+     DOOROS - Sistema Operativo
+   Algoritmo: FIFO (First In First Out)
+=========================================
+1. Crear proceso manualmente
+2. Cargar procesos desde archivo
+3. Iniciar simulacion
+4. Ver estado del sistema
+5. Salir
+=========================================
+```
+
+### Creación Manual de Procesos
+El usuario puede crear procesos interactivamente especificando:
+- **ID del proceso:** Identificador único
+- **Tiempo de llegada:** En milisegundos
+- **Ráfaga de CPU:** Número de ciclos necesarios
+- **Tamaño requerido:** Marcos de memoria
+- **Operaciones de E/S:** Por cada operación:
+  - Dispositivo (DISK, PRINTER, NETWORK)
+  - Duración (ciclos)
+  - Tipo (lectura/escritura)
+
+### Temporizador Real
+- Cada ciclo de CPU simula **100ms** de tiempo real
+- Usa `std::chrono` para delays precisos
+- Los tiempos se muestran en ms y ticks
+
+---
+
+## 6. Archivos de Configuración
 
 ### `configHard.txt`
 Configuración del hardware (formato: `marcos, tamaño_marco`):
@@ -143,7 +186,7 @@ P4, 6, 12, 1
 
 ---
 
-## 6. Compilación y Ejecución
+## 7. Compilación y Ejecución
 
 ### Requisitos
 - Compilador g++ con soporte C++17
@@ -161,40 +204,45 @@ g++ -std=c++17 -o bin/Debug/TPsistemaoperativo *.o
 ./bin/Debug/TPsistemaoperativo
 ```
 
+**Modo interactivo:**
+1. El programa inicia con el menú principal
+2. Opción 1: Crear procesos uno por uno con la interfaz
+3. Opción 2: Cargar múltiples procesos desde archivo
+4. Opción 4: Ver estado actual del sistema
+5. Opción 3: Iniciar la simulación (se ejecuta con tiempos reales)
+6. Opción 5: Salir del programa
+
 ---
 
-## 7. Salida de la Simulación
+## 8. Salida de la Simulación
 
-### Ejemplo de Ejecución
+### Ejemplo de Ejecución (FIFO)
 ```
-[SO] Sistema Operativo inicializado (Quantum=3)
+[SO] Sistema Operativo inicializado (Algoritmo: FIFO)
+[SO] Tiempo por ciclo de CPU: 100ms
 [SO] Cargando procesos desde procesos.txt...
   - Proceso P1 cargado (llegada=0, rafaga=10)
   ...
-========== INICIO DE SIMULACION ==========
+========== INICIO DE SIMULACION (FIFO) ==========
 
---- Tick 0 ---
-[Planificador LP] Admitiendo proceso P4 (marcos libres: 256)
-[Planificador CP] Asignando proceso P4 a CPU
-[CPU] Proceso P4 asignado a CPU
+--- Tick 0 (0ms) ---
+[Planificador LP] Admitiendo proceso P1 (marcos libres: 256)
+[Planificador CP - FIFO] Asignando proceso P1 a CPU
+[CPU] Proceso P1 asignado a CPU
 
---- Tick 1 ---
-[CPU] Ejecutando proceso P4 (rafaga restante: 11)
+--- Tick 1 (100ms) ---
+[CPU] Ejecutando proceso P1 (rafaga restante: 9)
 
---- Tick 4 ---
-[SO] Quantum agotado para proceso P4, cediendo CPU
-[PCB P4] Transicion: EJECUCION -> LISTO (fin de quantum)
+--- Tick 10 (1000ms) ---
+[SO] Proceso P1 ha terminado
+[PCB P1] Transicion: EJECUCION -> TERMINADO (t=10)
+[Planificador CP - FIFO] Asignando proceso P2 a CPU
 ...
 ========== FIN DE SIMULACION (t=50) ==========
-
-marco    id_proceso_asignado
-1        0
-2        1
-3        2
-4        3
-5        -1
-...
 ```
+
+**Nota:** Con FIFO, cada proceso ejecuta completamente sin interrupciones
+(no hay cambios de contexto por quantum como en Round Robin)
 
 ### Información Mostrada:
 - **Transiciones de estado:** Cada cambio de estado de PCB
@@ -204,7 +252,7 @@ marco    id_proceso_asignado
 
 ---
 
-## 8. Estructuras de Datos Principales
+## 9. Estructuras de Datos Principales
 
 ### TcolaOp - Cola de Operaciones de E/S
 ```cpp
@@ -228,7 +276,7 @@ Implementada mediante `ColaSincronizada` con soporte para concurrencia.
 
 ---
 
-## 9. Sincronización
+## 10. Sincronización
 
 ### Semáforos Implementados
 ```cpp
@@ -251,7 +299,7 @@ public:
 
 ---
 
-## 10. Limitaciones y Mejoras Futuras
+## 11. Limitaciones y Mejoras Futuras
 
 ### Limitaciones Actuales
 1. E/S simplificada (sin dispositivos múltiples activos)
@@ -260,15 +308,15 @@ public:
 4. Sin prioridades de procesos
 
 ### Mejoras Propuestas
-1. Implementar múltiples algoritmos de planificación (FCFS, SJF, prioridades)
-2. Simulación completa de E/S con tiempos reales
-3. Memoria virtual con paginación por demanda
-4. Estadísticas de rendimiento (turnaround, waiting time)
-5. Interfaz gráfica para visualización
+1. Implementar múltiples algoritmos de planificación seleccionables (FIFO, Round Robin, SJF, prioridades)
+2. Simulación completa de E/S con tiempos reales y bloqueos efectivos
+3. Memoria virtual con paginación por demanda y algoritmos de reemplazo
+4. Estadísticas de rendimiento (turnaround time, waiting time, throughput)
+5. Interfaz gráfica para visualización en tiempo real
 
 ---
 
-## 11. Justificación Técnica
+## 12. Justificación Técnica
 
 ### Elección de C++17
 1. **Rendimiento:** Compilado, ejecución nativa rápida
@@ -281,19 +329,27 @@ public:
 - Cada componente en archivos .h/.cpp independientes
 - Facilita mantenimiento y extensión
 
+### Interfaz Interactiva
+- Menú intuitivo para operación del simulador
+- Creación manual de procesos con validación
+- Tiempos reales con `std::chrono` para mayor realismo
+
 ---
 
-## 12. Conclusiones
+## 13. Conclusiones
 
 Este simulador demuestra exitosamente:
 ✅ Modelo completo de 5 estados de procesos  
-✅ Planificación Round Robin con quantum  
-✅ Gestión de memoria con paginación  
+✅ Planificación FIFO (First In First Out)  
+✅ Gestión de memoria con paginación simple
 ✅ Sincronización productor-consumidor con semáforos  
 ✅ Transiciones de estado visibles en tiempo real  
+✅ **Menú interactivo para operación del sistema**  
+✅ **Creación manual de procesos con interfaz**  
+✅ **Temporización real con milisegundos (std::chrono)**  
 ✅ Configuración parametrizable desde archivos  
 
-El proyecto cumple con todos los requisitos mínimos establecidos y proporciona una base sólida para comprender los conceptos fundamentales de sistemas operativos.
+El proyecto cumple con todos los requisitos establecidos y proporciona una interfaz amigable para experimentar con conceptos de sistemas operativos.
 
 ---
 

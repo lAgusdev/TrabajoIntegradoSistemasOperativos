@@ -1,5 +1,7 @@
 #include "Sistema_operativo.h"
 #include <cstdio>
+#include <thread>
+#include <chrono>
 
 
 Sistema_operativo::Sistema_operativo(config* conf) {
@@ -10,9 +12,9 @@ Sistema_operativo::Sistema_operativo(config* conf) {
      planificador_largo_plazo = new memoria_sec();
      procesos_terminados = nullptr;
      dispositivos = nullptr;
-     quantum = 3; // Quantum de 3 ciclos para Round Robin
-     ciclos_actuales = 0;
-     std::cout<<"[SO] Sistema Operativo inicializado (Quantum="<<quantum<<")"<<std::endl;
+     tiempo_simulacion_ms = 100; // 100ms por ciclo de CPU
+     std::cout<<"[SO] Sistema Operativo inicializado (Algoritmo: FIFO)"<<std::endl;
+     std::cout<<"[SO] Tiempo por ciclo de CPU: "<<tiempo_simulacion_ms<<"ms"<<std::endl;
 }
 
 void Sistema_operativo::cargar_procesos_desde_archivo(const char* nombre_archivo){
@@ -47,6 +49,61 @@ void Sistema_operativo::cargar_procesos_desde_archivo(const char* nombre_archivo
     std::cout<<"[SO] "<<procesos_cargados<<" procesos cargados en memoria secundaria"<<std::endl;
 }
 
+void Sistema_operativo::crear_proceso_interactivo(){
+    char id[MAXID];
+    int tiempo_llegada, rafaga, tamanio;
+    int num_operaciones_es;
+    
+    std::cout<<"\n=== CREAR NUEVO PROCESO ==="<<std::endl;
+    std::cout<<"ID del proceso (max "<<MAXID-1<<" caracteres): ";
+    std::cin>>id;
+    
+    std::cout<<"Tiempo de llegada (ms): ";
+    std::cin>>tiempo_llegada;
+    
+    std::cout<<"Tiempo de rafaga/CPU (ciclos): ";
+    std::cin>>rafaga;
+    
+    std::cout<<"Tamanio requerido (marcos): ";
+    std::cin>>tamanio;
+    
+    std::cout<<"Cantidad de operaciones de E/S: ";
+    std::cin>>num_operaciones_es;
+    
+    // Crear cola de operaciones E/S
+    TcolaOp operaciones_es;
+    iniciac(operaciones_es);
+    
+    for(int i = 0; i < num_operaciones_es; i++){
+        TELEMENTOCOP operacion;
+        std::cout<<"\n  Operacion E/S #"<<(i+1)<<":"<<std::endl;
+        std::cout<<"    Dispositivo (DISK/PRINTER/NETWORK): ";
+        std::cin>>operacion.id_dispositivo;
+        std::cout<<"    Duracion (ciclos): ";
+        std::cin>>operacion.duracion;
+        std::cout<<"    Tipo (0=lectura, 1=escritura): ";
+        std::cin>>operacion.tipo_operacion;
+        
+        ponec(operaciones_es, operacion);
+    }
+    
+    // Crear PCB y agregar a memoria secundaria
+    PCB* nuevo_pcb = new PCB(id, tiempo_llegada, rafaga, tamanio, operaciones_es);
+    planificador_largo_plazo->cargar_proceso(*nuevo_pcb);
+    
+    std::cout<<"\n[SO] Proceso "<<id<<" creado exitosamente!"<<std::endl;
+    std::cout<<"[SO] El proceso sera admitido cuando haya memoria disponible."<<std::endl;
+}
+
+void Sistema_operativo::mostrar_estado_sistema(){
+    std::cout<<"\n=== ESTADO DEL SISTEMA ==="<<std::endl;
+    std::cout<<"Tick actual: "<<reloj_global->obtener_tick()<<std::endl;
+    std::cout<<"CPU: "<<(unidad_central_proceso->esta_libre() ? "LIBRE" : "OCUPADA")<<std::endl;
+    std::cout<<"Procesos en cola de listos: "<<(!cola_listos->vacia() ? "SI" : "NO")<<std::endl;
+    std::cout<<"Procesos nuevos pendientes: "<<(planificador_largo_plazo->hay_procesos_pendientes() ? "SI" : "NO")<<std::endl;
+    std::cout<<"Marcos de memoria libres: "<<gestor_memoria->obtener_marcos_libres()<<std::endl;
+    std::cout<<"==========================="<<std::endl;
+}
 
 bool Sistema_operativo::hay_trabajo_pendiente() {
     bool cpu_ocupada = !unidad_central_proceso->esta_libre();
@@ -92,19 +149,12 @@ void Sistema_operativo::planificar_largo_plazo() {
 }
 
 void Sistema_operativo::planificar_corto_plazo() {
-    // Verificar si proceso actual termino o agoto quantum
-    if(!unidad_central_proceso->esta_libre()){
-        // Hay proceso ejecutando, verificar condiciones de desalojo
-        return; // Dejamos que ejecute hasta terminar o pedir E/S
-    }
-    
-    // CPU libre, asignar siguiente proceso de cola de listos
-    if(!cola_listos->vacia()){
+    // FIFO: Solo asignar proceso si CPU está libre
+    if(unidad_central_proceso->esta_libre() && !cola_listos->vacia()){
         PCB* pcb_listo = cola_listos->Retirar_de_Cola_Listos();
         if(pcb_listo != nullptr){
-            std::cout<<"[Planificador CP] Asignando proceso "<<pcb_listo->obtener_id()<<" a CPU"<<std::endl;
+            std::cout<<"[Planificador CP - FIFO] Asignando proceso "<<pcb_listo->obtener_id()<<" a CPU"<<std::endl;
             unidad_central_proceso->asignar_proceso(pcb_listo);
-            ciclos_actuales = 0;
         }
     }
 }
@@ -123,12 +173,15 @@ void Sistema_operativo::gestionar_desbloqueos() {
 }
 
 void Sistema_operativo::ejecutar_simulacion() {
-    std::cout<<"\n========== INICIO DE SIMULACION ==========\n"<<std::endl;
-    int ciclo_limite = 50;
+    std::cout<<"\n========== INICIO DE SIMULACION (FIFO) ==========\n"<<std::endl;
+    int ciclo_limite = 100;
     
     while(hay_trabajo_pendiente() && reloj_global->obtener_tick() < ciclo_limite) {
         int tick_actual = reloj_global->obtener_tick();
-        std::cout<<"\n--- Tick "<<tick_actual<<" ---"<<std::endl;
+        std::cout<<"\n--- Tick "<<tick_actual<<" ("<<(tick_actual * tiempo_simulacion_ms)<<"ms) ---"<<std::endl;
+        
+        // Simular tiempo real
+        std::this_thread::sleep_for(std::chrono::milliseconds(tiempo_simulacion_ms));
         
         gestionar_desbloqueos();
         planificar_largo_plazo();
@@ -143,21 +196,10 @@ void Sistema_operativo::ejecutar_simulacion() {
                 proceso_actual->cambio_a_terminado(tick_actual);
                 unidad_central_proceso->guardar_y_ceder(proceso_actual);
                 manejar_terminacion(proceso_actual);
-                ciclos_actuales = 0;
             }
-            // Verificar si agoto el quantum (Round Robin)
-            else if(ciclos_actuales >= quantum){
-                std::cout<<"[SO] Quantum agotado para proceso "<<proceso_actual->obtener_id()<<", cediendo CPU"<<std::endl;
-                unidad_central_proceso->guardar_y_ceder(proceso_actual);
-                // Cambiar a estado LISTO y devolver a cola
-                std::cout<<"[PCB "<<proceso_actual->obtener_id()<<"] Transicion: EJECUCION -> LISTO (fin de quantum)"<<std::endl;
-                cola_listos->Aniadir_a_Cola_Listos(proceso_actual);
-                ciclos_actuales = 0;
-            }
+            // FIFO: proceso continúa hasta terminar (no hay quantum)
             else {
-                // Continuar ejecutando
                 unidad_central_proceso->ejecutar_ciclo(dispositivos);
-                ciclos_actuales++;
             }
         }
         

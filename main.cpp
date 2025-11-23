@@ -5,42 +5,79 @@
 
 using namespace std;
 
-void menu(){
-    char op1,op2;
-    cout<<"Bienvenido a DoorOS";
-    do{
-        cout<<"Selecciones aplicacion: \n \t-a(Aplicacion1)\n \t-b(Aplicacion2)\n \t-c(Aplicacion3)\n \t-d(Aplicacion3)\n \t-e(Aplicacion4)\n";
-        cin>>op1;
-        switch(op1){
-            case 'a':
-                break;
-            case 'b':
-                break;
-            case'c':
-                break;
-            case'd':
-                break;
-            case 'e':
-                break;
-        }
-        cout<<"Quiere seguir utilizando el sistema:  s / n\n";
-        cin>>op2;
-    }while(op2!='n');
+void mostrar_menu_principal(){
+    cout<<"\n========================================="<<endl;
+    cout<<"     DOOROS - Sistema Operativo"<<endl;
+    cout<<"   Algoritmo: FIFO (First In First Out)"<<endl;
+    cout<<"========================================="<<endl;
+    cout<<"1. Crear proceso manualmente"<<endl;
+    cout<<"2. Cargar procesos desde archivo"<<endl;
+    cout<<"3. Iniciar simulacion"<<endl;
+    cout<<"4. Ver estado del sistema"<<endl;
+    cout<<"5. Salir"<<endl;
+    cout<<"========================================="<<endl;
+    cout<<"Seleccione una opcion: ";
 }
 
 int main(){
     bios biosSys;
     config conf;
+    
+    cout<<"Iniciando BIOS..."<<endl;
     biosSys.compruebaHard(conf);
     biosSys.cargaSO(conf);
+    
     Sistema_operativo doorOS(&conf);
     
-    // Cargar procesos desde archivo
-    doorOS.cargar_procesos_desde_archivo("procesos.txt");
+    int opcion;
+    bool simulacion_ejecutada = false;
     
-    // Ejecutar simulación
-    doorOS.ejecutar_simulacion();
+    do {
+        mostrar_menu_principal();
+        cin>>opcion;
+        
+        switch(opcion){
+            case 1: {
+                doorOS.crear_proceso_interactivo();
+                break;
+            }
+            case 2: {
+                char nombre_archivo[100];
+                cout<<"Ingrese nombre del archivo (ej: procesos.txt): ";
+                cin>>nombre_archivo;
+                doorOS.cargar_procesos_desde_archivo(nombre_archivo);
+                break;
+            }
+            case 3: {
+                if(simulacion_ejecutada){
+                    cout<<"\n[AVISO] La simulacion ya fue ejecutada."<<endl;
+                    cout<<"Reinicie el programa para ejecutar otra simulacion."<<endl;
+                } else {
+                    doorOS.ejecutar_simulacion();
+                    simulacion_ejecutada = true;
+                }
+                break;
+            }
+            case 4: {
+                doorOS.mostrar_estado_sistema();
+                break;
+            }
+            case 5: {
+                cout<<"\nSaliendo del sistema..."<<endl;
+                break;
+            }
+            default:
+                cout<<"\nOpcion invalida. Intente nuevamente."<<endl;
+        }
+        
+        if(opcion != 5){
+            cout<<"\nPresione Enter para continuar...";
+            cin.ignore();
+            cin.get();
+        }
+        
+    } while(opcion != 5);
     
-    std::cout << "Simulacion completada." << std::endl;
+    cout<<"Simulacion completada. Adios!"<<endl;
     return 0;
 }
