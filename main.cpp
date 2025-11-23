@@ -36,6 +36,5 @@ int main(){
         if(biosSys.cargaSO(config))
             if(doorOS.iniciaSO(config))
                 menu();
-    };
     return 0;
 }
