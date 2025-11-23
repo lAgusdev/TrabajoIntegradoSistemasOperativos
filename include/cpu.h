@@ -1,7 +1,9 @@
 #ifndef CPU_H
 #define CPU_H
+#include <iostream>
 #include "PCB.h"
-
+#include "Reloj.h"
+#include "dispositivos_IO.h"
 class cpu{
 private:
         PCB* proceso_actual;

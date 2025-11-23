@@ -30,7 +30,7 @@ int memoria_prpal::obtener_marcos_libres(){
 TlistPunMem memoria_prpal::asignar_memoria(int id_proceso, int marcos_requeridos){//requiere que se corrobore que se pueda asignar antes
     Tlistamarcos actmarco=marcos;
     TlistPunMem puntmem=NULL;
-    while(actmarco->estaocupado){
+    while(actmarco->estaocupado()){
         actmarco=actmarco->sig;
     }
     while(marcos_requeridos>0){

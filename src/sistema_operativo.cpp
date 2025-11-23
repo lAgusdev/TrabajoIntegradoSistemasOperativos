@@ -5,7 +5,7 @@ Sistema_operativo::Sistema_operativo(Config* conf) {
      reloj_global = new Reloj();
      unidad_central_proceso = new CPU(this);
      gestor_memoria = new memoria_prpal(conf->total_marcos, conf->tam_marco);
-     cola_listos = new ColaSincronizada(conf->tamaño_buffer);
+     cola_listos = new ColaSincronizada(conf->tamanio_buffer);
      planificador_largo_plazo = new memoria_sec();
 
 
@@ -44,7 +44,7 @@ void Sistema_operativo::planificar_largo_plazo() {
 
         if (!punteros.vacia()) {
             pcb_nuevo->cambio_a_listo(punteros);
-            cola_listos->Añadir_a_Cola_Listos(pcb_nuevo);
+            cola_listos->Aniadir_a_Cola_Listos(pcb_nuevo);
             planificador_largo_plazo->eliminar_proceso(pcb_nuevo->obtener_id());
         }
     }
@@ -68,7 +68,7 @@ void Sistema_operativo::gestionar_desbloqueos() {
         PCB* pcb_desbloqueado = dev->verificar_y_desbloquear(tick);
 
         if (pcb_desbloqueado != nullptr) {
-            cola_listos->Añadir_a_Cola_Listos(pcb_desbloqueado);
+            cola_listos->Aniadir_a_Cola_Listos(pcb_desbloqueado);
         }
     }
 }

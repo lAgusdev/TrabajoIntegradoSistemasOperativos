@@ -16,7 +16,7 @@ void dispositivos_IO::solicitar_dispositivo(PCB* pcb_solicitante, int duracion_s
 }
 void dispositivos_IO::asignar_proceso_actual(PCB* pcb_asignar, int duracion_operacion, int reloj_global){
     estado=Estado_IO::OCUPADO;
-    id_proceso_asignado=pcb_asignar->obtener_id;
+    id_proceso_asignado=pcb_asignar->obtener_id();
     tiempo_dasbloqueo=reloj_global+duracion_operacion;
 }
 char* dispositivos_IO::verificar_y_desbloquear(int reloj_global){

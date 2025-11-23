@@ -3,8 +3,8 @@
 #define MAXID 7
 #define MAXNOM 20
 #include "Estado_IO.h"
-#include "PCB.h"
-
+#include "Estructuras.h"
+#include <iostream>
 class dispositivos_IO{
 private:
     char nombre_dispositivo[MAXNOM];

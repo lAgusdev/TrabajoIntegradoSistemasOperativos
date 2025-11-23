@@ -19,15 +19,24 @@
 1762665304 source:d:\algoritmos 2\tpsistemaoperativo\trabajointegradosistemasoperativos\src\reloj.cpp
 	"Reloj.h"
 
-1762665304 d:\algoritmos 2\tpsistemaoperativo\trabajointegradosistemasoperativos\include\reloj.h
+1763862270 d:\algoritmos 2\tpsistemaoperativo\trabajointegradosistemasoperativos\include\reloj.h
+	<iostream>
 
 1763855186 source:d:\algoritmos 2\tpsistemaoperativo\trabajointegradosistemasoperativos\src\estado.cpp
 	"estado.h"
 
-1763855176 d:\algoritmos 2\tpsistemaoperativo\trabajointegradosistemasoperativos\include\estado.h
+1763862280 d:\algoritmos 2\tpsistemaoperativo\trabajointegradosistemasoperativos\include\estado.h
 
 1763855988 source:d:\algoritmos 2\tpsistemaoperativo\trabajointegradosistemasoperativos\src\estado_io.cpp
 	"Estado_IO.h"
 
-1763856558 d:\algoritmos 2\tpsistemaoperativo\trabajointegradosistemasoperativos\include\estado_io.h
+1763862270 d:\algoritmos 2\tpsistemaoperativo\trabajointegradosistemasoperativos\include\estado_io.h
+	<iostream>
+
+1763870860 source:d:\algoritmos 2\tpsistemaoperativo\trabajointegradosistemasoperativos\src\estructuras.cpp
+	"Estructuras.h"
+
+1763870860 d:\algoritmos 2\tpsistemaoperativo\trabajointegradosistemasoperativos\include\estructuras.h
+	<iostream>
+	<cstring>
 

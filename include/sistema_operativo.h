@@ -1,5 +1,6 @@
 #ifndef SISTEMA_OPERATIVO_H
 #define SISTEMA_OPERATIVO_H
+#include <iostream>
 #include "Reloj.h"
 #include "cpu.h"
 #include "memoria_prpal.h"

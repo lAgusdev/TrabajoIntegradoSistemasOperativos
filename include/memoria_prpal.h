@@ -1,12 +1,8 @@
 #ifndef MEMORIA_PRPAL_H
 #define MEMORIA_PRPAL_H
-#include "marco.h"
-#include "PCB.h"
-typedef struct nodomarc{
-    marco * marco;
-    struct nodomarc *sig;
-}Tnodomarc;
-typedef Tnodomarc *Tlistmarcos;
+#include  "marco.h"
+#include "Estructuras.h"
+#include <iostream>
 
 
 class memoria_prpal{

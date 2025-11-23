@@ -1,7 +1,7 @@
 #ifndef MEMORIA_SEC_H
 #define MEMORIA_SEC_H
-#include "PCB.h"
-
+#include "Estructuras.h"
+#include <iostream>
 class memoria_sec{
     TListaPCB procesos_pendientes;
     int capacidad_simulada;
