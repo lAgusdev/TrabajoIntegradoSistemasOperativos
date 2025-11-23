@@ -34,7 +34,13 @@ int main(){
     biosSys.compruebaHard(conf);
     biosSys.cargaSO(conf);
     Sistema_operativo doorOS(&conf);
+    
+    // Cargar procesos desde archivo
+    doorOS.cargar_procesos_desde_archivo("procesos.txt");
+    
+    // Ejecutar simulación
     doorOS.ejecutar_simulacion();
+    
     std::cout << "Simulacion completada." << std::endl;
     return 0;
 }

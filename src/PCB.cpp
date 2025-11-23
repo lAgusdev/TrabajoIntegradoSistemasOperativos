@@ -33,10 +33,12 @@ void PCB::cambio_a_ejecucion(){
     Estado=estado::EJECUCION;
 }
 void PCB::cambio_a_bloqueado(int tiempo_fin){
+    std::cout<<"[PCB "<<id<<"] Transicion: EJECUCION -> BLOQUEADO (hasta t="<<tiempo_fin<<")"<<std::endl;
     Estado=estado::BLOQUEADO;
     tiempo_bloqueo=tiempo_fin;
 }
 void PCB::cambio_a_terminado(int tiempo_actual){
+    std::cout<<"[PCB "<<id<<"] Transicion: EJECUCION -> TERMINADO (t="<<tiempo_actual<<")"<<std::endl;
     Estado=estado::TERMINADO;
     tiempo_finalizacion=tiempo_actual;
 }

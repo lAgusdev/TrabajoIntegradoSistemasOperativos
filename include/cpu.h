@@ -13,6 +13,7 @@ private:
 public:
     cpu();
     int esta_libre();
+    PCB* obtener_proceso_actual();
     void asignar_proceso(PCB* nuevo_pcb);
     void ejecutar_ciclo(dispositivos_IO* io_manager);
     void guardar_y_ceder(PCB* pcb_saliente);

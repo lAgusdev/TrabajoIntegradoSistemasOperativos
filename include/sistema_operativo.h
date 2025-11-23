@@ -19,6 +19,8 @@ class Sistema_operativo{
         dispositivos_IO* dispositivos; // Simplificado, expandir si se necesita lista
         ColaSincronizada* cola_listos;
         TlistaPCB procesos_terminados;
+        int quantum;
+        int ciclos_actuales;
     public:
         Sistema_operativo(config* conf);
         void ejecutar_simulacion();
@@ -27,6 +29,7 @@ class Sistema_operativo{
         void gestionar_desbloqueos();
         void manejar_terminacion(PCB* pcb_terminado);
         bool hay_trabajo_pendiente();
+        void cargar_procesos_desde_archivo(const char* nombre_archivo);
 };
 
 #endif // SISTEMA_OPERATIVO_H
