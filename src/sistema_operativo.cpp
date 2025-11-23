@@ -8,9 +8,9 @@ Sistema_operativo::Sistema_operativo(Config* conf) {
      cola_listos = new ColaSincronizada(conf->tamanio_buffer);
      planificador_largo_plazo = new memoria_sec();
 
-
+     Inicialización de Dispositivos de E/S (ejemplo)
      for (int i = 0; i < conf->num_dispositivos; ++i) {
-         //cargardispositivos
+         lista_dispositivos_IO.push_back(new dispositivos_IO(...));
     }
 }
 

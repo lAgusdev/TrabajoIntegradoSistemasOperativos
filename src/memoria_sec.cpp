@@ -1,9 +1,5 @@
 #include "memoria_sec.h"
 
-memoria_sec::memoria_sec()
-{
-    //ctor
-}
 void memoria_sec::cargar_proceso(PCB& nuevo_pcb){
     TlistaPCB ant,actlist=procesos_pendientes;
     while(act!=actlist){
@@ -31,8 +27,4 @@ void memoria_sec::mostrar_lista(){
     while(actlist!=NULL){
         cout<<actlist->PCB->id<<endl;
     }
-}
-memoria_sec::~memoria_sec()
-{
-    //dtor
 }

@@ -2,7 +2,7 @@
 #include "PCB.h"
 
 
-cpu::cpu(Reloj* reloj_global){
+cpu::cpu(){
     proceso_actual=NULL;
     contador_programa_interno =0;
     estado_libre=1;
@@ -15,7 +15,7 @@ void cpu::asignar_proceso(PCB* nuevo_pcb){
     proceso_actual = nuevo_pcb;
     estado_libre = 0;
 }
-void cpu::ejecutar_ciclo(dispositivos_IO* io_manager,Reloj* reloj_global){
+void cpu::ejecutar_ciclo(dispositivos_IO* io_manager){
     proceso_actual->ejecutar_ciclo();
     io_manager->verificar_y_desbloquear(reloj_global);
 }
