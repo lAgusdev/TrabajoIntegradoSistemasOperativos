@@ -1,6 +1,6 @@
 #ifndef MEMORIA_SEC_H
 #define MEMORIA_SEC_H
-
+#include "PCB.h"
 
 class memoria_sec{
     TListaPCB procesos_pendientes;

@@ -1,8 +1,8 @@
 /* tdacolad.h  -  TDACola  implementacion dinamica*/
-
+#include "PCB.h"
 typedef int TELEMENTOC;
 typedef struct nodo {
-    Proceso *proceso;
+   PCB *proceso;
     struct nodo *sig;
 } NODOC;
 

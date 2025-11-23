@@ -1,5 +1,5 @@
 #include "cpu.h"
-
+#include "PCB.h"
 
 
 cpu::cpu(Reloj* reloj_global){
@@ -21,8 +21,4 @@ void cpu::ejecutar_ciclo(dispositivos_IO* io_manager,Reloj* reloj_global){
 }
 void cpu::guardar_y_ceder(PCB* pcb_saliente){
     pcb_saliente->guardar_contexto();
-}
-cpu::~cpu()
-{
-    //dtor
 }

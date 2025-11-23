@@ -3,10 +3,10 @@
 
 PCB::PCB(char in_Id[MAXID], int in_tiempo_llegada,int in_tiempo_rafaga_restante,int in_tamanio_requerido,TcolaOp in_operaciones_E_S){
         strcpy(id,in_Id);
-        estado=enum_estado.nuevo;
+        Estado=estado::NUEVO;
         tiempo_llegada=in_tiempo_llegada;
         tiempo_rafaga_restante=in_tiempo_rafaga_restante;
-        tamaño_requerido=in_tamaño_requerido;
+        tamanio_requerido=in_tamanio_requerido;
 
         PCB::carga_operaciones(&in_operaciones_E_S);
 
@@ -20,7 +20,7 @@ PCB::PCB(char in_Id[MAXID], int in_tiempo_llegada,int in_tiempo_rafaga_restante,
 }
 void PCB::cambio_a_listo(TlistPunMem in_punteros_memoria){
     punteros_memoria=in_punteros_memoria;
-    estado=enum_estado.listo;
+    Estado=estado::LISTO;
 }
 void PCB::carga_operaciones(TcolaOp * in_operaciones_E_S){
     TELEMENTOCOP elem;
@@ -30,14 +30,14 @@ void PCB::carga_operaciones(TcolaOp * in_operaciones_E_S){
     }
 }
 void PCB::cambio_a_ejecucion(){
-    estado=ejecucion;
+    Estado=estado::EJECUCION;
 }
 void PCB::cambio_a_bloqueado(int tiempo_fin){
-    estado=bloqueado;
+    Estado=estado::BLOQUEADO;
     tiempo_bloqueo=tiempo_fin;
 }
 void PCB::cambio_a_terminado(int tiempo_actual){
-    estado=terminado;
+    Estado=estado::TERMINADO;
     tiempo_finalizacion=tiempo_actual;
 }
 RegistroE_S PCB::solicitar_proxima_ES(){
@@ -56,7 +56,7 @@ char* PCB::obtener_id(){
     return id;
 }
 enum PCB::obtener_estado(){
-    return estado;
+    return Estado;
 }
 int PCB::obtener_rafaga_restante(){
     return tiempo_rafaga_restante;
@@ -75,7 +75,7 @@ TlistRegistros PCB::guardar_contexto(){
     return registros_CPU;
 }
 void PCB::restaurar_contexto(){}
-int PCB::ha_terminado(){
+int PCB::haterminado(){
     if(tiempo_rafaga_restante==0){
         return 1;
     }else{

@@ -1,11 +1,14 @@
 #ifndef DISPOSITIVOS_IO_H
 #define DISPOSITIVOS_IO_H
-
+#define MAXID 7
+#define MAXNOM 20
+#include "Estado_IO.h"
+#include "PCB.h"
 
 class dispositivos_IO{
 private:
     char nombre_dispositivo[MAXNOM];
-    enum estado;
+    Estado_IO estado;
     TcolaPcb cola_espera;
     char id_proceso_asignado[MAXID];
     int tiempo_dasbloqueo;
