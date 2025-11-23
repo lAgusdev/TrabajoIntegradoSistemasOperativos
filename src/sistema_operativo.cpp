@@ -2,6 +2,8 @@
 #include <cstdio>
 #include <thread>   // Para usar sleep (pausas reales)
 #include <chrono>   // Para manejar milisegundos
+#include <string>   // Para validación de dispositivos
+#include <algorithm> // Para toupper
 
 // CONSTRUCTOR: Inicializa todos los componentes del sistema operativo
 Sistema_operativo::Sistema_operativo(config* conf) {
@@ -57,37 +59,108 @@ void Sistema_operativo::crear_proceso_interactivo(){
     int tiempo_llegada, rafaga, tamanio;  // Datos del proceso
     int num_operaciones_es;           // Cuántas operaciones de E/S tendrá
     
-    // Solicitar datos al usuario
+    // Solicitar datos al usuario CON VALIDACIÓN
     std::cout<<"\n=== CREAR NUEVO PROCESO ==="<<std::endl;
     std::cout<<"ID del proceso (max "<<MAXID-1<<" caracteres): ";
     std::cin>>id;
     
-    std::cout<<"Tiempo de llegada (ms): ";
-    std::cin>>tiempo_llegada;
+    // VALIDAR: Tiempo de llegada >= 0
+    do {
+        std::cout<<"Tiempo de llegada (ms, >= 0): ";
+        std::cin>>tiempo_llegada;
+        if(std::cin.fail() || tiempo_llegada < 0){
+            std::cin.clear();
+            std::cin.ignore(10000, '\n');
+            std::cout<<"  [ERROR] Ingrese un numero valido >= 0"<<std::endl;
+            tiempo_llegada = -1;
+        }
+    } while(tiempo_llegada < 0);
     
-    std::cout<<"Tiempo de rafaga/CPU (ciclos): ";
-    std::cin>>rafaga;
+    // VALIDAR: Ráfaga > 0
+    do {
+        std::cout<<"Tiempo de rafaga/CPU (ciclos, > 0): ";
+        std::cin>>rafaga;
+        if(std::cin.fail() || rafaga <= 0){
+            std::cin.clear();
+            std::cin.ignore(10000, '\n');
+            std::cout<<"  [ERROR] Ingrese un numero valido > 0"<<std::endl;
+            rafaga = 0;
+        }
+    } while(rafaga <= 0);
     
-    std::cout<<"Tamanio requerido (marcos): ";
-    std::cin>>tamanio;
+    // VALIDAR: Tamaño entre 1 y 256 (marcos disponibles)
+    do {
+        std::cout<<"Tamanio requerido (marcos, 1-256): ";
+        std::cin>>tamanio;
+        if(std::cin.fail() || tamanio < 1 || tamanio > 256){
+            std::cin.clear();
+            std::cin.ignore(10000, '\n');
+            std::cout<<"  [ERROR] Ingrese un numero entre 1 y 256"<<std::endl;
+            tamanio = 0;
+        }
+    } while(tamanio < 1 || tamanio > 256);
     
-    std::cout<<"Cantidad de operaciones de E/S: ";
-    std::cin>>num_operaciones_es;
+    // VALIDAR: Operaciones E/S >= 0
+    do {
+        std::cout<<"Cantidad de operaciones de E/S (>= 0): ";
+        std::cin>>num_operaciones_es;
+        if(std::cin.fail() || num_operaciones_es < 0){
+            std::cin.clear();
+            std::cin.ignore(10000, '\n');
+            std::cout<<"  [ERROR] Ingrese un numero valido >= 0"<<std::endl;
+            num_operaciones_es = -1;
+        }
+    } while(num_operaciones_es < 0);
     
     // Crear cola de operaciones E/S
     TcolaOp operaciones_es;
     iniciac(operaciones_es);
     
-    // Solicitar datos de cada operación E/S
+    // Solicitar datos de cada operación E/S CON VALIDACIÓN
     for(int i = 0; i < num_operaciones_es; i++){
         TELEMENTOCOP operacion;
         std::cout<<"\n  Operacion E/S #"<<(i+1)<<":"<<std::endl;
-        std::cout<<"    Dispositivo (DISCO/IMPRESORA/RED): ";
-        std::cin>>operacion.id_dispositivo;
-        std::cout<<"    Duracion (ciclos): ";
-        std::cin>>operacion.duracion;
-        std::cout<<"    Tipo (0=lectura, 1=escritura): ";
-        std::cin>>operacion.tipo_operacion;
+        
+        // VALIDAR: Dispositivo válido (DISCO, IMPRESORA, RED)
+        bool dispositivo_valido = false;
+        do {
+            std::cout<<"    Dispositivo (DISCO/IMPRESORA/RED): ";
+            std::cin>>operacion.id_dispositivo;
+            
+            // Convertir a mayúsculas para validar
+            std::string disp_upper = operacion.id_dispositivo;
+            for(auto &c : disp_upper) c = toupper(c);
+            
+            if(disp_upper == "DISCO" || disp_upper == "IMPRESORA" || disp_upper == "RED"){
+                dispositivo_valido = true;
+            } else {
+                std::cout<<"      [ERROR] Dispositivo invalido. Use: DISCO, IMPRESORA o RED"<<std::endl;
+            }
+        } while(!dispositivo_valido);
+        
+        // VALIDAR: Duración > 0
+        do {
+            std::cout<<"    Duracion (ciclos, > 0): ";
+            std::cin>>operacion.duracion;
+            if(std::cin.fail() || operacion.duracion <= 0){
+                std::cin.clear();
+                std::cin.ignore(10000, '\n');
+                std::cout<<"      [ERROR] Ingrese un numero valido > 0"<<std::endl;
+                operacion.duracion = 0;
+            }
+        } while(operacion.duracion <= 0);
+        
+        // VALIDAR: Tipo 0 o 1
+        do {
+            std::cout<<"    Tipo (0=lectura, 1=escritura): ";
+            std::cin>>operacion.tipo_operacion;
+            if(std::cin.fail() || (operacion.tipo_operacion != 0 && operacion.tipo_operacion != 1)){
+                std::cin.clear();
+                std::cin.ignore(10000, '\n');
+                std::cout<<"      [ERROR] Ingrese 0 (lectura) o 1 (escritura)"<<std::endl;
+                operacion.tipo_operacion = -1;
+            }
+        } while(operacion.tipo_operacion != 0 && operacion.tipo_operacion != 1);
         
         ponec(operaciones_es, operacion);  // Agregar a la cola
     }
@@ -124,8 +197,14 @@ bool Sistema_operativo::hay_trabajo_pendiente() {
 void Sistema_operativo::manejar_terminacion(PCB* pcb_terminado) {
     int tick_actual = reloj_global->obtener_tick();
     pcb_terminado->cambio_a_terminado(tick_actual);  // Cambia estado a TERMINADO
-    // TODO: convertir char* a int para liberar_memoria o cambiar firma
-    // gestor_memoria->liberar_memoria(pcb_terminado->obtener_id());
+    
+    // LIBERAR MEMORIA: Obtener el ID numérico y liberar los marcos
+    int id_memoria = pcb_terminado->obtener_id_proceso_memoria();
+    if(id_memoria != -1){
+        std::cout<<"[SO] Liberando memoria del proceso "<<pcb_terminado->obtener_id()<<" (ID memoria: "<<id_memoria<<")"<<std::endl;
+        gestor_memoria->liberar_memoria(id_memoria);
+    }
+    
     // TODO: usar lista enlazada correcta para procesos_terminados
 }
 
@@ -144,6 +223,7 @@ void Sistema_operativo::planificar_largo_plazo() {
                 
                 // Asignar ID numérico simple para el proceso
                 int id_proceso = reloj_global->obtener_tick() % 1000;
+                pcb_nuevo->asignar_id_proceso_memoria(id_proceso);  // GUARDAR el ID en el PCB
                 TlistPunMem punteros = gestor_memoria->asignar_memoria(id_proceso, marcos_necesarios);
                 
                 // Cambiar de NUEVO → LISTO y agregarlo a la cola

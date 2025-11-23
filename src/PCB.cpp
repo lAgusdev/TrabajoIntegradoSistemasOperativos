@@ -16,6 +16,7 @@ PCB::PCB(char in_Id[MAXID], int in_tiempo_llegada,int in_tiempo_rafaga_restante,
         tiempo_bloqueo=0;
         tiempo_espera_acumulado=0;
         tiempo_finalizacion=0;
+        id_proceso_memoria=-1;  // Inicializar sin asignar
 
 }
 void PCB::cambio_a_listo(TlistPunMem in_punteros_memoria){
@@ -69,6 +70,12 @@ TlistPunMem PCB::obtener_punteros_memoria(){
 }
 int PCB::obtener_tiempo_bloqueo(){
     return tiempo_bloqueo;
+}
+int PCB::obtener_id_proceso_memoria(){
+    return id_proceso_memoria;
+}
+void PCB::asignar_id_proceso_memoria(int id){
+    id_proceso_memoria = id;
 }
 void PCB::ejecutar_ciclo(){
     tiempo_rafaga_restante--;

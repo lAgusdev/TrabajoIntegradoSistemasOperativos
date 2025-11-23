@@ -41,6 +41,13 @@ int main(){
         mostrar_menu_principal();  // Muestra las opciones
         cin>>opcion;               // Lee la opción del usuario
         
+        // VALIDAR: Limpiar buffer si la entrada falló
+        if(cin.fail()){
+            cin.clear();
+            cin.ignore(10000, '\n');
+            opcion = -1;  // Forzar opción inválida
+        }
+        
         switch(opcion){
             case 1: {
                 // OPCIÓN 1: Crear un proceso manualmente

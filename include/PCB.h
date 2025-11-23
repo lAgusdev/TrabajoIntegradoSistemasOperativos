@@ -17,6 +17,7 @@ class PCB{
         int tiempo_bloqueo;
         int tiempo_espera_acumulado;
         int tiempo_finalizacion;
+        int id_proceso_memoria;  // ID numérico usado para asignar memoria
     public:
         PCB(char in_Id[MAXID], int in_tiempo_llegada,int in_tiempo_rafaga_restante,int in_tamanio_requerido,TcolaOp in_operaciones_E_S);
         void carga_operaciones(TcolaOp * in_operaciones_E_S);
@@ -31,6 +32,8 @@ class PCB{
         int obtener_rafaga_restante();
         TlistPunMem obtener_punteros_memoria();
         int obtener_tiempo_bloqueo();
+        int obtener_id_proceso_memoria();  // Obtener ID numérico de memoria
+        void asignar_id_proceso_memoria(int id);  // Asignar ID numérico de memoria
 
         void ejecutar_ciclo();
         TlistRegistros guardar_contexto();
