@@ -9,17 +9,16 @@ config::config(){
     memoria_sec memSSet;
     dispositivos_IO disIOSet, newDisIO;
     char nombre[MAXNOM];
-    int promedio;
+    int cant_total_marcos, tam_marco, promedio;
     if(configHard != NULL){
         cpu CPUSet();
         CPU = CPUSet;
 
-
-        memoria_prpal memPSet();
+        fscanf(configHard, "%d, %d", &cant_total_marcos, &tam_marco)
+        memoria_prpal memPSet(cant_total_marcos, tam_marco);
         memP = memPSet;
 
-
-
+        //Nose sabe que poner fscanf(configHard, "%d, %d", &cant_total_marcos, &tam_marco)
         memoria_sec memSSet();
         memS = memSSet;
 
