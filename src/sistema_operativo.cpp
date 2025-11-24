@@ -269,7 +269,7 @@ void Sistema_operativo::gestionar_desbloqueos() {
 // EJECUTAR SIMULACIÓN: Bucle principal que ejecuta todo el sistema operativo
 void Sistema_operativo::ejecutar_simulacion() {
     std::cout<<"\n========== INICIO DE SIMULACION (FIFO) ==========\n"<<std::endl;
-    int ciclo_limite = 100;  // Máximo 100 ticks para evitar loops infinitos
+    int ciclo_limite = 500;  // Máximo 500 ticks (suficiente para muchos procesos)
     
     // Bucle principal: mientras haya trabajo y no supere el límite
     while(hay_trabajo_pendiente() && reloj_global->obtener_tick() < ciclo_limite) {
@@ -309,6 +309,36 @@ void Sistema_operativo::ejecutar_simulacion() {
         reloj_global->avanzar_tick();
     }
     
-    std::cout<<"\n========== FIN DE SIMULACION (t="<<reloj_global->obtener_tick()<<") ==========\n"<<std::endl;
+    int tick_final = reloj_global->obtener_tick();
+    
+    // LIMPIAR PROCESOS INCOMPLETOS si se alcanzó el límite
+    if(tick_final >= ciclo_limite){
+        std::cout<<"\n[AVISO] Limite de ciclos alcanzado ("<<ciclo_limite<<" ticks)"<<std::endl;
+        
+        // Liberar proceso que quedó en CPU
+        if(!unidad_central_proceso->esta_libre()){
+            PCB* proceso_actual = unidad_central_proceso->obtener_proceso_actual();
+            std::cout<<"[SO] Liberando proceso incompleto: "<<proceso_actual->obtener_id()<<std::endl;
+            int id_memoria = proceso_actual->obtener_id_proceso_memoria();
+            if(id_memoria != -1){
+                gestor_memoria->liberar_memoria(id_memoria);
+            }
+            unidad_central_proceso->guardar_y_ceder(proceso_actual);
+        }
+        
+        // Liberar procesos en cola de listos
+        while(!cola_listos->vacia()){
+            PCB* pcb_pendiente = cola_listos->Retirar_de_Cola_Listos();
+            if(pcb_pendiente != nullptr){
+                std::cout<<"[SO] Liberando proceso pendiente: "<<pcb_pendiente->obtener_id()<<std::endl;
+                int id_memoria = pcb_pendiente->obtener_id_proceso_memoria();
+                if(id_memoria != -1){
+                    gestor_memoria->liberar_memoria(id_memoria);
+                }
+            }
+        }
+    }
+    
+    std::cout<<"\n========== FIN DE SIMULACION (t="<<tick_final<<") ==========\n"<<std::endl;
     gestor_memoria->mostrar_estado_memoria();
 }

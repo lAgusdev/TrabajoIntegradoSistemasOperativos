@@ -1,0 +1,1355 @@
+================================================================================
+                    DOCUMENTACIÓN TÉCNICA - DOOROS
+                    Sistema Operativo Simulado
+                    Algoritmo: FIFO (First In First Out)
+================================================================================
+
+ÍNDICE:
+1. main.cpp - Programa Principal
+2. Sistema_operativo.h/cpp - Núcleo del Sistema Operativo
+3. bios.h/cpp - Sistema de Inicio
+4. config.h/cpp - Configuración del Hardware
+5. cpu.h/cpp - Unidad Central de Procesamiento
+6. PCB.h/cpp - Process Control Block
+7. estado.h/cpp - Estados de Procesos
+8. memoria_prpal.h/cpp - Memoria Principal (RAM)
+9. memoria_sec.h/cpp - Memoria Secundaria
+10. marco.h/cpp - Marcos de Memoria
+11. ColaSincronizada.h/cpp - Cola Sincronizada de Procesos
+12. Reloj.h/cpp - Reloj Global del Sistema
+13. dispositivos_IO.h/cpp - Gestión de Dispositivos E/S
+14. DispositivoIO.h/cpp - Dispositivo Individual
+15. Estado_IO.h/cpp - Estados de Operaciones E/S
+16. Estructuras.h - Estructuras de Datos Globales
+
+================================================================================
+1. MAIN.CPP - PROGRAMA PRINCIPAL
+================================================================================
+
+PROPÓSITO:
+    Punto de entrada del simulador. Controla el menú interactivo y permite
+    crear procesos, cargar desde archivo, ejecutar simulaciones y reiniciar
+    el sistema sin cerrar el programa.
+
+COMPONENTES PRINCIPALES:
+
+    void mostrar_menu_principal()
+    --------------------------------
+    - Muestra el menú con 6 opciones
+    - Interfaz de usuario clara y organizada
+    
+    OPCIONES DEL MENÚ:
+        1. Crear proceso manualmente
+        2. Cargar procesos desde archivo
+        3. Iniciar simulación
+        4. Ver estado del sistema
+        5. Reiniciar sistema (NUEVO)
+        6. Salir
+
+    int main()
+    ----------
+    - Inicializa BIOS y configuración
+    - Bucle externo: permite reiniciar el sistema completo
+    - Bucle interno: menú de opciones
+    - Valida entradas del usuario (evita crashes)
+    - Crea nueva instancia del SO en cada reinicio
+
+FLUJO DE EJECUCIÓN:
+    1. BIOS comprueba hardware
+    2. BIOS carga sistema operativo
+    3. Crear instancia de Sistema_operativo
+    4. Mostrar menú y esperar entrada
+    5. Ejecutar acción seleccionada
+    6. Si reinicia: volver al paso 3
+    7. Si sale: liberar recursos y terminar
+
+VALIDACIONES:
+    - Detecta entrada no numérica (cin.fail())
+    - Limpia buffer automáticamente
+    - Previene opciones inválidas
+
+================================================================================
+2. SISTEMA_OPERATIVO.H/CPP - NÚCLEO DEL SISTEMA OPERATIVO
+================================================================================
+
+PROPÓSITO:
+    Clase central que coordina todos los componentes del sistema operativo.
+    Implementa los planificadores, gestiona procesos y ejecuta la simulación.
+
+ATRIBUTOS PRIVADOS:
+    - Reloj* reloj_global              → Tiempo del sistema
+    - cpu* unidad_central_proceso      → CPU que ejecuta procesos
+    - memoria_prpal* gestor_memoria    → Memoria RAM (paginación)
+    - ColaSincronizada* cola_listos    → Procesos listos para ejecutar
+    - memoria_sec* planificador_largo_plazo → Procesos nuevos
+    - TlistPCB procesos_terminados     → Lista de procesos finalizados
+    - dispositivos_IO* dispositivos    → Gestión de E/S
+    - int tiempo_simulacion_ms         → 100ms por ciclo de CPU
+
+MÉTODOS PÚBLICOS:
+
+    Sistema_operativo(config* conf)
+    --------------------------------
+    Constructor. Inicializa todos los componentes:
+    - Reloj global en 0
+    - CPU libre
+    - 256 marcos de memoria de 4096 bytes cada uno
+    - Cola de listos (capacidad 100)
+    - Memoria secundaria
+    - Tiempo de simulación: 100ms por tick
+
+    void cargar_procesos_desde_archivo(const char* nombre_archivo)
+    ---------------------------------------------------------------
+    - Lee archivo de texto (formato CSV)
+    - Cada línea: ID, tiempo_llegada, ráfaga, tamaño
+    - Crea PCB para cada proceso
+    - Los agrega a memoria secundaria (estado NUEVO)
+    - Formato esperado: "P1, 0, 10, 1"
+
+    void crear_proceso_interactivo()
+    ---------------------------------
+    - Solicita datos al usuario paso a paso
+    - VALIDA todas las entradas:
+        * ID: máximo 19 caracteres
+        * Tiempo de llegada: >= 0
+        * Ráfaga de CPU: > 0
+        * Tamaño: 1-256 marcos
+        * Operaciones E/S: >= 0
+        * Dispositivo: DISCO, IMPRESORA o RED
+        * Duración E/S: > 0
+        * Tipo: 0=lectura, 1=escritura
+    - Crea PCB y lo agrega a memoria secundaria
+
+    void ejecutar_simulacion()
+    ---------------------------
+    Bucle principal de la simulación (CORAZÓN DEL SO):
+    
+    LÍMITE: 500 ticks (50 segundos reales a 100ms/tick)
+    
+    CICLO POR CADA TICK:
+        1. Gestionar desbloqueos (E/S completadas)
+        2. Planificador de largo plazo (NUEVO → LISTO)
+        3. Ejecutar proceso en CPU o manejar terminación
+        4. Planificador de corto plazo (LISTO → EJECUCIÓN)
+        5. Avanzar reloj global
+    
+    AL FINALIZAR:
+        - Si alcanza límite: libera procesos incompletos
+        - Libera memoria de procesos en CPU
+        - Libera memoria de procesos en cola de listos
+        - Muestra tabla de memoria final
+
+    void mostrar_estado_sistema()
+    ------------------------------
+    Muestra información actual:
+    - Tick actual del reloj
+    - Estado de la CPU (LIBRE/OCUPADA)
+    - Procesos en cola de listos (SI/NO)
+    - Procesos nuevos pendientes (SI/NO)
+    - Marcos de memoria libres
+
+MÉTODOS PRIVADOS:
+
+    bool hay_trabajo_pendiente()
+    -----------------------------
+    Retorna true si:
+    - CPU está ocupada, O
+    - Hay procesos en cola de listos, O
+    - Hay procesos nuevos en memoria secundaria
+
+    void manejar_terminacion(PCB* pcb_terminado)
+    --------------------------------------------
+    - Cambia estado del PCB a TERMINADO
+    - Obtiene ID de memoria del proceso
+    - Libera marcos asignados
+    - Imprime confirmación de liberación
+
+    void planificar_largo_plazo()
+    ------------------------------
+    PLANIFICADOR DE ADMISIÓN (NUEVO → LISTO):
+    - Verifica si hay procesos nuevos
+    - Verifica si hay memoria disponible
+    - Asigna ID numérico único al proceso
+    - Guarda ID en el PCB para liberación futura
+    - Asigna marcos de memoria
+    - Cambia estado a LISTO
+    - Agrega a cola de listos
+    - Elimina de memoria secundaria
+
+    void planificar_corto_plazo()
+    ------------------------------
+    PLANIFICADOR FIFO (LISTO → EJECUCIÓN):
+    - Solo actúa si CPU está libre
+    - Retira primer proceso de cola de listos
+    - Lo asigna a la CPU
+    - NO hay preempción (ejecuta hasta terminar)
+
+    void gestionar_desbloqueos()
+    ----------------------------
+    - Verifica dispositivos de E/S
+    - Desbloquea procesos cuya operación terminó
+    - Mueve procesos de BLOQUEADO → LISTO
+
+================================================================================
+3. BIOS.H/CPP - SISTEMA DE INICIO
+================================================================================
+
+PROPÓSITO:
+    Simula el Basic Input/Output System. Verifica hardware y carga el SO.
+
+MÉTODOS:
+
+    void compruebaHard(config &conf)
+    --------------------------------
+    - Valida configuración del hardware
+    - Verifica que hay marcos de memoria disponibles
+    - Verifica que hay dispositivos configurados
+    - Imprime "Hardware check passed"
+
+    void cargaSO(config &conf)
+    ---------------------------
+    - Simula búsqueda del sistema operativo en el MBR
+    - Imprime "Searching in MBR SO"
+    - Imprime "SO found" si todo está OK
+    - Carga configuración del SO
+
+================================================================================
+4. CONFIG.H/CPP - CONFIGURACIÓN DEL HARDWARE
+================================================================================
+
+PROPÓSITO:
+    Almacena la configuración de hardware del sistema simulado.
+
+ATRIBUTOS:
+    - int cant_total_marcos     → Total de marcos de memoria (256)
+    - int tam_marco            → Tamaño de cada marco (4096 bytes)
+    - int tam_buffer           → Tamaño del buffer compartido
+    - int cant_dispositivos    → Cantidad de dispositivos E/S
+
+MÉTODOS:
+
+    config()
+    --------
+    Constructor que lee archivos de configuración:
+    - configHard.txt: marcos y tamaño
+    - configDisIO.txt: dispositivos E/S
+
+    Getters:
+    --------
+    - int obt_cant_marcos()
+    - int obt_tam_marco()
+    - int obt_tam_buffer()
+    - int obt_cant_disp()
+
+================================================================================
+5. CPU.H/CPP - UNIDAD CENTRAL DE PROCESAMIENTO
+================================================================================
+
+PROPÓSITO:
+    Simula la CPU que ejecuta procesos. Mantiene referencia al proceso actual.
+
+ATRIBUTOS:
+    - PCB* proceso_actual    → Proceso en ejecución (NULL si libre)
+
+MÉTODOS:
+
+    bool esta_libre()
+    -----------------
+    - Retorna true si proceso_actual == NULL
+    - Retorna false si hay proceso ejecutando
+
+    void asignar_proceso(PCB* pcb)
+    ------------------------------
+    - Guarda referencia al proceso
+    - Cambia estado del proceso a EJECUCIÓN
+    - Imprime mensaje de asignación
+
+    void ejecutar_ciclo(dispositivos_IO* dispositivos)
+    --------------------------------------------------
+    - Ejecuta 1 ciclo de CPU del proceso actual
+    - Decrementa ráfaga restante en 1
+    - Imprime ráfaga restante
+    - Verifica si proceso solicita E/S
+    - Si solicita E/S: bloquea el proceso
+
+    void guardar_y_ceder(PCB* pcb)
+    ------------------------------
+    - Guarda contexto del proceso (registros)
+    - Imprime mensaje de contexto guardado
+    - Libera la CPU (proceso_actual = NULL)
+
+    PCB* obtener_proceso_actual()
+    -----------------------------
+    - Retorna puntero al proceso actual
+    - NULL si CPU libre
+
+================================================================================
+6. PCB.H/CPP - PROCESS CONTROL BLOCK
+================================================================================
+
+PROPÓSITO:
+    Estructura de datos que representa un proceso. Contiene toda la información
+    necesaria para gestionar su ejecución, memoria y operaciones E/S.
+
+ATRIBUTOS PRIVADOS:
+    - char id[MAXID]                     → Identificador del proceso
+    - estado Estado                      → Estado actual (NUEVO, LISTO, etc.)
+    - int tiempo_llegada                 → Momento de llegada
+    - int contador_programa              → Instrucción actual
+    - TlistRegistros registros_CPU       → Registros guardados
+    - int tiempo_rafaga_restante         → Ciclos de CPU que faltan
+    - int tamanio_requerido              → Marcos de memoria necesarios
+    - TlistPunMem punteros_memoria       → Punteros a marcos asignados
+    - TcolaOp operaciones_E_S            → Cola de operaciones E/S
+    - int tiempo_bloqueo                 → Tiempo bloqueado
+    - int tiempo_espera_acumulado        → Tiempo total esperando
+    - int tiempo_finalizacion            → Tick de finalización
+    - int id_proceso_memoria             → ID numérico para gestión de memoria
+
+MÉTODOS PÚBLICOS:
+
+    PCB(char id[], int tiempo_llegada, int rafaga, int tamaño, TcolaOp ops_es)
+    --------------------------------------------------------------------------
+    Constructor:
+    - Inicializa todos los atributos
+    - Estado inicial: NUEVO
+    - id_proceso_memoria = -1 (sin asignar)
+
+    void cambio_a_listo(TlistPunMem punteros)
+    ------------------------------------------
+    - Cambia estado a LISTO
+    - Guarda punteros a memoria asignada
+    - Imprime transición de estado
+
+    void cambio_a_ejecucion()
+    --------------------------
+    - Cambia estado a EJECUCION
+    - Imprime transición
+
+    void cambio_a_bloqueado(int tiempo_fin)
+    ----------------------------------------
+    - Cambia estado a BLOQUEADO
+    - Guarda tiempo de bloqueo
+    - Imprime transición
+
+    void cambio_a_terminado(int tiempo_actual)
+    -------------------------------------------
+    - Cambia estado a TERMINADO
+    - Guarda tiempo de finalización
+    - Imprime transición con timestamp
+
+    void ejecutar_ciclo()
+    ---------------------
+    - Decrementa tiempo_rafaga_restante en 1
+    - Incrementa contador_programa
+
+    int haterminado()
+    -----------------
+    - Retorna 1 si tiempo_rafaga_restante == 0
+    - Retorna 0 en caso contrario
+
+    int obtener_id_proceso_memoria()
+    --------------------------------
+    - Retorna el ID numérico usado para asignar memoria
+    - Usado para liberar memoria al terminar
+
+    void asignar_id_proceso_memoria(int id)
+    ----------------------------------------
+    - Guarda el ID numérico de memoria
+    - Llamado cuando se asigna memoria al proceso
+
+    Getters:
+    --------
+    - char* obtener_id()
+    - estado obtener_estado()
+    - int obtener_rafaga_restante()
+    - TlistPunMem obtener_punteros_memoria()
+    - int obtener_tiempo_bloqueo()
+
+================================================================================
+7. ESTADO.H/CPP - ESTADOS DE PROCESOS
+================================================================================
+
+PROPÓSITO:
+    Enumeración de los 5 estados posibles de un proceso según el modelo de
+    5 estados de sistemas operativos.
+
+ENUM estado:
+    - NUEVO       → Proceso creado, esperando admisión
+    - LISTO       → En memoria, esperando CPU
+    - EJECUCION   → Ejecutando en CPU
+    - BLOQUEADO   → Esperando operación E/S
+    - TERMINADO   → Ejecución completada
+
+TRANSICIONES VÁLIDAS:
+    NUEVO → LISTO           (Planificador largo plazo)
+    LISTO → EJECUCION       (Planificador corto plazo)
+    EJECUCION → LISTO       (Quantum agotado - NO APLICA EN FIFO)
+    EJECUCION → BLOQUEADO   (Solicitud E/S)
+    EJECUCION → TERMINADO   (Ráfaga completada)
+    BLOQUEADO → LISTO       (E/S completada)
+
+================================================================================
+8. MEMORIA_PRPAL.H/CPP - MEMORIA PRINCIPAL (RAM)
+================================================================================
+
+PROPÓSITO:
+    Gestiona la memoria RAM usando paginación simple. Asigna y libera marcos
+    de memoria a los procesos.
+
+ATRIBUTOS:
+    - int tamanio_marco           → Tamaño de cada marco (4096 bytes)
+    - Tlistmarcos marcos          → Lista enlazada de marcos
+
+MÉTODOS:
+
+    memoria_prpal(int cant_marcos, int tam_marco)
+    ----------------------------------------------
+    Constructor:
+    - Crea cant_marcos marcos (256 por defecto)
+    - Cada marco tiene tamaño tam_marco (4096 bytes)
+    - Inicialmente todos están libres
+
+    int obtener_marcos_libres()
+    ---------------------------
+    - Recorre lista de marcos
+    - Cuenta cuántos NO están ocupados
+    - Retorna cantidad de marcos libres
+
+    TlistPunMem asignar_memoria(int id_proceso, int marcos_requeridos)
+    -------------------------------------------------------------------
+    - Busca marcos_requeridos marcos libres consecutivos o dispersos
+    - Asigna id_proceso a cada marco encontrado
+    - Marca marcos como ocupados
+    - Retorna lista de punteros a marcos asignados
+    - Si no hay suficientes marcos, retorna NULL
+
+    void liberar_memoria(int id_proceso)
+    ------------------------------------
+    - Recorre TODOS los marcos
+    - Busca los que tienen id_proceso asignado
+    - Los marca como libres (id = -1)
+    - Permite que sean reasignados
+
+    void mostrar_estado_memoria()
+    -----------------------------
+    - Imprime tabla: "marco  id_proceso_asignado"
+    - SOLO muestra marcos ocupados (id != -1)
+    - Oculta los 200+ marcos libres para claridad
+
+================================================================================
+9. MEMORIA_SEC.H/CPP - MEMORIA SECUNDARIA
+================================================================================
+
+PROPÓSITO:
+    Almacena procesos en estado NUEVO que esperan admisión a memoria principal.
+    Funciona como cola de procesos nuevos.
+
+ATRIBUTOS:
+    - TlistPCB procesos_nuevos    → Lista enlazada de PCBs
+
+MÉTODOS:
+
+    void cargar_proceso(PCB &pcb)
+    -----------------------------
+    - Agrega proceso al final de la lista
+    - Proceso queda en estado NUEVO
+    - Espera que planificador LP lo admita
+
+    PCB* obtener_proceso_para_admision()
+    -------------------------------------
+    - Retorna primer proceso de la lista
+    - NO lo elimina (aún)
+    - Retorna NULL si lista vacía
+
+    void eliminar_proceso(char* id)
+    --------------------------------
+    - Busca proceso por ID
+    - Lo elimina de la lista
+    - Llamado después de admitir proceso a memoria
+
+    bool hay_procesos_pendientes()
+    -------------------------------
+    - Retorna true si lista NO está vacía
+    - Retorna false si no hay procesos
+
+================================================================================
+10. MARCO.H/CPP - MARCOS DE MEMORIA
+================================================================================
+
+PROPÓSITO:
+    Representa un marco de memoria individual en el esquema de paginación.
+
+ATRIBUTOS:
+    - int id_proceso_asignado     → ID del proceso dueño (-1 si libre)
+    - int tamanio                 → Tamaño del marco (4096 bytes)
+
+MÉTODOS:
+
+    marco(int tam)
+    --------------
+    Constructor:
+    - Inicializa tamaño
+    - id_proceso_asignado = -1 (libre)
+
+    void asignar(int id_proceso)
+    ----------------------------
+    - Guarda id_proceso
+    - Marca marco como ocupado
+
+    void liberar()
+    --------------
+    - id_proceso_asignado = -1
+    - Marca marco como libre
+
+    bool esta_ocupado()
+    -------------------
+    - Retorna true si id_proceso_asignado != -1
+    - Retorna false si marco está libre
+
+    int obt_id_proceso_asignado()
+    -----------------------------
+    - Retorna el ID del proceso asignado
+    - Retorna -1 si marco libre
+
+================================================================================
+11. COLASINCRONIZADA.H/CPP - COLA SINCRONIZADA DE PROCESOS
+================================================================================
+
+PROPÓSITO:
+    Cola thread-safe para procesos LISTOS. Usa semáforos para sincronización
+    en esquema productor-consumidor.
+
+ATRIBUTOS:
+    - buffer_compartido* buffer    → Buffer circular interno
+    - sem_t sem_vacio             → Cuenta espacios vacíos
+    - sem_t sem_lleno             → Cuenta elementos disponibles
+    - std::mutex mutex            → Exclusión mutua
+
+MÉTODOS:
+
+    ColaSincronizada(int capacidad)
+    --------------------------------
+    Constructor:
+    - Crea buffer con capacidad especificada
+    - Inicializa sem_vacio = capacidad
+    - Inicializa sem_lleno = 0
+    - Crea mutex
+
+    void Aniadir_a_Cola_Listos(PCB* pcb)
+    -------------------------------------
+    OPERACIÓN PRODUCTOR:
+    - Espera si cola llena (sem_wait en vacio)
+    - Obtiene lock del mutex
+    - Agrega PCB al buffer
+    - Libera mutex
+    - Señala elemento disponible (sem_post en lleno)
+
+    PCB* Retirar_de_Cola_Listos()
+    ------------------------------
+    OPERACIÓN CONSUMIDOR:
+    - Espera si cola vacía (sem_wait en lleno)
+    - Obtiene lock del mutex
+    - Retira primer PCB del buffer
+    - Libera mutex
+    - Señala espacio libre (sem_post en vacio)
+    - Retorna PCB
+
+    bool vacia()
+    ------------
+    - Retorna true si buffer está vacío
+    - Retorna false en caso contrario
+
+================================================================================
+12. RELOJ.H/CPP - RELOJ GLOBAL DEL SISTEMA
+================================================================================
+
+PROPÓSITO:
+    Mantiene el tiempo global del sistema en ticks. Cada tick representa
+    un ciclo de CPU (100ms de tiempo real).
+
+ATRIBUTOS:
+    - int tick_actual    → Tiempo actual del sistema
+
+MÉTODOS:
+
+    Reloj()
+    -------
+    Constructor:
+    - tick_actual = 0
+
+    void avanzar_tick()
+    -------------------
+    - Incrementa tick_actual en 1
+    - Llamado al final de cada ciclo de simulación
+
+    int obtener_tick()
+    ------------------
+    - Retorna tick_actual
+    - Usado para timestamps en transiciones de estado
+
+================================================================================
+13. DISPOSITIVOS_IO.H/CPP - GESTIÓN DE DISPOSITIVOS E/S
+================================================================================
+
+PROPÓSITO:
+    Gestiona múltiples dispositivos de entrada/salida. Coordina operaciones
+    de E/S y maneja colas de procesos bloqueados.
+
+ATRIBUTOS:
+    - int cantidad_dispositivos       → Número de dispositivos
+    - DispositivoIO** dispositivos    → Array de punteros a dispositivos
+
+MÉTODOS:
+
+    dispositivos_IO(int cant)
+    -------------------------
+    Constructor:
+    - Crea cant dispositivos
+    - Cada dispositivo tiene ID único
+
+    void solicitar_IO(char* id_proceso, char* id_dispositivo, int duracion)
+    ------------------------------------------------------------------------
+    - Busca dispositivo por ID
+    - Agrega proceso a cola del dispositivo
+    - Proceso queda en estado BLOQUEADO
+
+    char* verificar_y_desbloquear(int tick_actual)
+    -----------------------------------------------
+    - Recorre todos los dispositivos
+    - Verifica si alguna operación terminó
+    - Desbloquea proceso correspondiente
+    - Retorna ID del proceso desbloqueado (o NULL)
+
+================================================================================
+14. DISPOSITIVOIO.H/CPP - DISPOSITIVO INDIVIDUAL
+================================================================================
+
+PROPÓSITO:
+    Representa un dispositivo de E/S específico (DISCO, IMPRESORA, RED).
+    Maneja cola de procesos esperando usar el dispositivo.
+
+ATRIBUTOS:
+    - char id[20]                → Identificador (DISCO, IMPRESORA, RED)
+    - TcolaPcb cola_bloqueados   → Cola de procesos bloqueados
+    - bool ocupado               → Si está procesando operación
+    - int tiempo_operacion_actual → Duración de operación actual
+    - int tick_finalizacion      → Cuándo terminará operación
+
+MÉTODOS:
+
+    DispositivoIO(const char* id_disp)
+    -----------------------------------
+    Constructor:
+    - Guarda ID del dispositivo
+    - ocupado = false
+
+    void solicitar_operacion(PCB* pcb, int duracion, int tick_actual)
+    ------------------------------------------------------------------
+    - Agrega PCB a cola de bloqueados
+    - Si dispositivo libre:
+        * ocupado = true
+        * tiempo_operacion_actual = duracion
+        * tick_finalizacion = tick_actual + duracion
+
+    PCB* verificar_finalizacion(int tick_actual)
+    ---------------------------------------------
+    - Si tick_actual >= tick_finalizacion:
+        * Retira proceso de cola
+        * ocupado = false
+        * Retorna PCB desbloqueado
+    - Si no: retorna NULL
+
+================================================================================
+15. ESTADO_IO.H/CPP - ESTADOS DE OPERACIONES E/S
+================================================================================
+
+PROPÓSITO:
+    Enumeración de estados posibles para operaciones de entrada/salida.
+
+ENUM EstadoIO:
+    - PENDIENTE    → Operación en cola, no iniciada
+    - EN_PROCESO   → Dispositivo procesando la operación
+    - COMPLETADA   → Operación finalizada
+
+================================================================================
+16. ESTRUCTURAS.H - ESTRUCTURAS DE DATOS GLOBALES
+================================================================================
+
+PROPÓSITO:
+    Define todas las estructuras de datos auxiliares usadas en el sistema.
+
+CONSTANTES:
+    #define MAXID 20              → Máximo caracteres para ID de proceso
+    #define TAM_MAX_BUFFER 100    → Tamaño máximo del buffer
+
+ESTRUCTURAS PRINCIPALES:
+
+    typedef struct RegistroE_S {
+        char id_dispositivo[20];   → Dispositivo solicitado
+        int duracion;              → Ciclos que toma la operación
+        int tipo_operacion;        → 0=lectura, 1=escritura
+    } TELEMENTOCOP;
+
+    struct NodoColaOp {
+        TELEMENTOCOP dato;
+        struct NodoColaOp* sig;
+    };
+
+    typedef struct {
+        NodoColaOp* frente;
+        NodoColaOp* final;
+    } TcolaOp;
+    → Cola enlazada para operaciones E/S de un proceso
+
+    typedef struct Registro {
+        int valor;
+        struct Registro* sig;
+    } Treg;
+
+    typedef Treg* TlistRegistros;
+    → Lista de registros de CPU
+
+    struct NodoPCB {
+        PCB* dato;
+        struct NodoPCB* sig;
+    };
+
+    typedef NodoPCB* TlistPCB;
+    → Lista enlazada de PCBs
+
+    typedef struct {
+        NodoPCB* primero;
+        NodoPCB* ultimo;
+    } TcolaPcb;
+    → Cola de PCBs (usado por dispositivos IO)
+
+    struct NodoMarco {
+        marco* contenido;
+        struct NodoMarco* sig;
+    };
+
+    typedef NodoMarco* Tlistmarcos;
+    → Lista enlazada de marcos de memoria
+
+    typedef Tlistmarcos TlistPunMem;
+    → Lista de punteros a memoria asignada a un proceso
+
+FUNCIONES DE GESTIÓN DE COLAS:
+
+    Para TcolaOp (operaciones E/S):
+    -------------------------------
+    - void iniciac(TcolaOp &cola)        → Inicializa cola vacía
+    - void ponec(TcolaOp &cola, TELEMENTOCOP elem)  → Encola elemento
+    - void sacac(TcolaOp &cola, TELEMENTOCOP &elem) → Desencola elemento
+    - bool esVaciac(TcolaOp &cola)       → Verifica si está vacía
+    - TELEMENTOCOP consultac(TcolaOp &cola) → Consulta frente sin sacar
+
+    Para TcolaPcb (procesos bloqueados):
+    ------------------------------------
+    - void iniciaPcb(TcolaPcb &cola)     → Inicializa cola vacía
+    - void ponePcb(TcolaPcb &cola, PCB* proceso) → Encola PCB
+    - void sacaPcb(TcolaPcb &cola, PCB* &proceso) → Desencola PCB
+    - bool esVaciaPcb(TcolaPcb &cola)    → Verifica si está vacía
+
+================================================================================
+ALGORITMO FIFO (FIRST IN FIRST OUT)
+================================================================================
+
+CARACTERÍSTICAS:
+    - También conocido como FCFS (First Come First Served)
+    - Algoritmo de planificación NO preemptivo
+    - El primer proceso que llega es el primero en ejecutarse
+    - No hay quantum ni interrupciones
+    - Cada proceso ejecuta hasta terminar o pedir E/S
+
+VENTAJAS:
+    + Simple de implementar
+    + Justo en orden de llegada
+    + Sin overhead de cambio de contexto frecuente
+    + Predecible
+
+DESVENTAJAS:
+    - Efecto convoy: procesos cortos esperan a largos
+    - Tiempo de espera promedio puede ser alto
+    - No favorece procesos interactivos
+
+IMPLEMENTACIÓN EN DOOROS:
+    1. Cola de listos: FIFO estricto
+    2. Planificador CP: asigna solo si CPU libre
+    3. Proceso ejecuta hasta:
+        - Completar su ráfaga (TERMINADO)
+        - Solicitar E/S (BLOQUEADO)
+    4. NO hay desalojo por quantum
+
+================================================================================
+MODELO DE 5 ESTADOS
+================================================================================
+
+DIAGRAMA:
+                        ┌─────────┐
+                        │  NUEVO  │
+                        └────┬────┘
+                             │ Admisión (Planif. LP)
+                             ↓
+    ┌────────────────────────┴────────────────────────┐
+    │                                                  │
+    │              ┌─────────┐                        │
+    └─────────────→│  LISTO  │◄───────────┐           │
+         E/S       └────┬────┘            │           │
+       completa         │                 │           │
+                        │ Dispatch        │           │
+                        │ (Planif. CP)    │           │
+                        ↓                 │           │
+                   ┌──────────┐           │           │
+                   │EJECUCION │───────────┘           │
+                   └────┬─────┘   Ráfaga              │
+                        │         terminada           │
+                        │                             │
+                        ↓                             │
+                   ┌──────────┐                       │
+                   │BLOQUEADO │                       │
+                   └────┬─────┘                       │
+                        │ E/S                         │
+                        │ completa                    │
+                        └─────────────────────────────┘
+                                                      │
+                                                      ↓
+                                                ┌──────────┐
+                                                │TERMINADO │
+                                                └──────────┘
+
+TRANSICIONES EN DOOROS:
+
+    NUEVO → LISTO:
+    - Trigger: Planificador largo plazo
+    - Condición: Hay memoria disponible
+    - Acción: Asignar marcos, cambiar estado
+
+    LISTO → EJECUCION:
+    - Trigger: Planificador corto plazo (FIFO)
+    - Condición: CPU libre
+    - Acción: Asignar proceso a CPU
+
+    EJECUCION → BLOQUEADO:
+    - Trigger: Proceso solicita E/S
+    - Condición: Operación E/S pendiente
+    - Acción: Agregar a cola de dispositivo
+
+    BLOQUEADO → LISTO:
+    - Trigger: Operación E/S completa
+    - Condición: tick >= tick_finalizacion
+    - Acción: Mover a cola de listos
+
+    EJECUCION → TERMINADO:
+    - Trigger: Ráfaga completa
+    - Condición: tiempo_rafaga_restante == 0
+    - Acción: Liberar memoria, liberar CPU
+
+================================================================================
+GESTIÓN DE MEMORIA - PAGINACIÓN SIMPLE
+================================================================================
+
+ESQUEMA:
+    - 256 marcos de memoria
+    - Cada marco: 4096 bytes
+    - Total RAM: 1 MB (1,048,576 bytes)
+
+ASIGNACIÓN:
+    1. Proceso solicita N marcos
+    2. Sistema busca N marcos libres
+    3. Marcos pueden estar dispersos (no consecutivos)
+    4. Se asigna ID numérico al proceso
+    5. Se marcan marcos como ocupados
+
+LIBERACIÓN:
+    1. Proceso termina
+    2. Sistema busca todos los marcos con su ID
+    3. Marca cada marco como libre (id = -1)
+    4. Marcos disponibles para reasignación
+
+TABLA DE PÁGINAS:
+    - Cada proceso tiene TlistPunMem
+    - Lista de punteros a marcos asignados
+    - Permite acceso a su memoria
+
+FRAGMENTACIÓN:
+    - Fragmentación interna: Desperdicio dentro de marcos
+    - Fragmentación externa: Minimizada por paginación
+
+================================================================================
+SINCRONIZACIÓN - PRODUCTOR-CONSUMIDOR
+================================================================================
+
+PROBLEMA:
+    - Planificador LP produce procesos listos
+    - Planificador CP consume procesos listos
+    - Cola compartida debe ser thread-safe
+
+SOLUCIÓN:
+
+    Semáforos:
+    ----------
+    - sem_vacio: Cuenta espacios libres en cola
+    - sem_lleno: Cuenta elementos en cola
+
+    Mutex:
+    ------
+    - Garantiza exclusión mutua en acceso a buffer
+
+    Productor (Planificador LP):
+    ----------------------------
+    1. wait(sem_vacio)    → Espera espacio libre
+    2. lock(mutex)        → Exclusión mutua
+    3. agregar_a_buffer() → Operación crítica
+    4. unlock(mutex)      → Libera acceso
+    5. signal(sem_lleno)  → Señala elemento disponible
+
+    Consumidor (Planificador CP):
+    -----------------------------
+    1. wait(sem_lleno)    → Espera elemento disponible
+    2. lock(mutex)        → Exclusión mutua
+    3. retirar_de_buffer()→ Operación crítica
+    4. unlock(mutex)      → Libera acceso
+    5. signal(sem_vacio)  → Señala espacio libre
+
+VENTAJAS:
+    - Evita condiciones de carrera
+    - Previene deadlock
+    - Permite concurrencia controlada
+
+================================================================================
+VALIDACIONES DE ENTRADA
+================================================================================
+
+PROPÓSITO:
+    Prevenir crashes, buffer overflow y comportamiento indefinido por
+    entradas inválidas del usuario.
+
+VALIDACIONES IMPLEMENTADAS:
+
+    Menú Principal:
+    ---------------
+    - Detecta entrada no numérica (cin.fail())
+    - Limpia buffer automáticamente
+    - Rechaza opciones fuera de rango
+
+    Creación de Proceso:
+    --------------------
+    1. Tiempo de llegada:
+        - Debe ser >= 0
+        - Repite hasta obtener valor válido
+        - Manejo de cin.fail()
+
+    2. Ráfaga de CPU:
+        - Debe ser > 0
+        - No se aceptan valores negativos ni cero
+
+    3. Tamaño de memoria:
+        - Rango válido: 1-256 marcos
+        - Previene overflow
+
+    4. Cantidad de operaciones E/S:
+        - Debe ser >= 0
+
+    5. Dispositivo E/S:
+        - Solo acepta: DISCO, IMPRESORA, RED
+        - Convierte a mayúsculas para validar
+        - Repite hasta obtener dispositivo válido
+
+    6. Duración de E/S:
+        - Debe ser > 0
+
+    7. Tipo de operación:
+        - Solo acepta: 0 (lectura) o 1 (escritura)
+
+TÉCNICAS:
+    - do-while loops para repetir solicitud
+    - cin.clear() para limpiar flags de error
+    - cin.ignore() para limpiar buffer
+    - Mensajes claros de error
+
+================================================================================
+TEMPORIZACIÓN REAL
+================================================================================
+
+IMPLEMENTACIÓN:
+    #include <thread>
+    #include <chrono>
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+CONFIGURACIÓN:
+    - tiempo_simulacion_ms = 100
+    - Cada tick = 100ms de tiempo real
+    - 10 ticks = 1 segundo real
+
+VISUALIZACIÓN:
+    Tick 0 (0ms)
+    Tick 1 (100ms)
+    Tick 2 (200ms)
+    ...
+    Tick 10 (1000ms)
+
+PROPÓSITO:
+    - Simular tiempo real de ejecución
+    - Permitir observar transiciones de estado
+    - Experiencia más realista del SO
+
+DESACTIVACIÓN:
+    Para simulación rápida, comentar:
+    // std::this_thread::sleep_for(...)
+
+================================================================================
+FLUJO COMPLETO DE EJECUCIÓN
+================================================================================
+
+FASE 1: INICIALIZACIÓN
+-----------------------
+1. main() inicia
+2. BIOS comprueba hardware
+3. BIOS carga SO
+4. Se crea instancia de Sistema_operativo
+5. Se inicializan todos los componentes
+
+FASE 2: CARGA DE PROCESOS
+--------------------------
+Opción A - Archivo:
+    1. Usuario selecciona opción 2
+    2. Ingresa nombre de archivo
+    3. Sistema lee archivo línea por línea
+    4. Crea PCB por cada proceso
+    5. Agrega a memoria secundaria (NUEVO)
+
+Opción B - Manual:
+    1. Usuario selecciona opción 1
+    2. Sistema solicita datos paso a paso
+    3. Valida cada entrada
+    4. Crea PCB con datos validados
+    5. Agrega a memoria secundaria (NUEVO)
+
+FASE 3: EJECUCIÓN DE SIMULACIÓN
+--------------------------------
+1. Usuario selecciona opción 3
+2. Sistema inicia bucle principal
+
+   POR CADA TICK (0 a 499):
+   
+   a) Gestionar desbloqueos:
+      - Verificar dispositivos E/S
+      - Desbloquear procesos cuya E/S terminó
+      - Mover de BLOQUEADO → LISTO
+   
+   b) Planificador Largo Plazo:
+      - Verificar si hay procesos NUEVOS
+      - Verificar si hay memoria disponible
+      - Asignar memoria al proceso
+      - Guardar ID de memoria en PCB
+      - Cambiar estado: NUEVO → LISTO
+      - Agregar a cola de listos
+   
+   c) Ejecutar CPU:
+      - Si hay proceso en ejecución:
+          * Si terminó: EJECUCION → TERMINADO
+          * Liberar memoria
+          * Liberar CPU
+      - Si no terminó: ejecutar 1 ciclo
+          * Decrementar ráfaga
+          * Verificar solicitud E/S
+   
+   d) Planificador Corto Plazo:
+      - Si CPU libre Y hay procesos listos:
+          * Retirar primer proceso de cola (FIFO)
+          * Asignar a CPU
+          * LISTO → EJECUCION
+   
+   e) Avanzar reloj:
+      - tick++
+      - Pausa de 100ms (tiempo real)
+   
+   f) Verificar condiciones de salida:
+      - ¿Hay trabajo pendiente?
+      - ¿Se alcanzó límite de 500 ticks?
+
+3. Finalización:
+   - Si alcanzó límite:
+       * Liberar proceso en CPU
+       * Liberar procesos en cola de listos
+       * Mostrar mensaje de límite alcanzado
+   - Mostrar tabla de memoria
+   - Mostrar FIN DE SIMULACION
+
+FASE 4: POST-SIMULACIÓN
+------------------------
+1. Usuario puede:
+   - Ver estado del sistema (opción 4)
+   - Reiniciar sistema (opción 5)
+   - Salir (opción 6)
+
+2. Si reinicia:
+   - Destruye instancia actual de SO
+   - Crea nueva instancia
+   - Vuelve a FASE 2
+
+3. Si sale:
+   - Libera todos los recursos
+   - Termina programa
+
+================================================================================
+FORMATO DE ARCHIVOS
+================================================================================
+
+configHard.txt:
+---------------
+256 4096
+
+Línea 1: cantidad de marcos
+Línea 2: tamaño de cada marco (bytes)
+
+configDisIO.txt:
+----------------
+3
+
+Línea 1: cantidad de dispositivos E/S
+
+procesos.txt:
+-------------
+P1, 0, 10, 1
+P2, 2, 8, 1
+P3, 4, 6, 1
+P4, 6, 12, 1
+
+Formato: ID, tiempo_llegada, rafaga, tamaño_marcos
+- ID: identificador del proceso
+- tiempo_llegada: tick de llegada al sistema
+- rafaga: ciclos de CPU necesarios
+- tamaño_marcos: marcos de memoria requeridos
+
+================================================================================
+ESTADÍSTICAS Y MÉTRICAS
+================================================================================
+
+TIEMPO DE ESPERA:
+    - Tiempo que un proceso pasa en cola de LISTO
+    - Se acumula en tiempo_espera_acumulado del PCB
+
+TIEMPO DE RETORNO (Turnaround):
+    - tiempo_finalizacion - tiempo_llegada
+    - Tiempo total desde llegada hasta terminación
+
+TIEMPO DE RESPUESTA:
+    - Tiempo desde llegada hasta primera ejecución
+
+UTILIZACIÓN DE CPU:
+    - Porcentaje de tiempo que CPU estuvo ocupada
+    - (Ticks con proceso / Total ticks) * 100
+
+THROUGHPUT:
+    - Procesos completados por unidad de tiempo
+    - Procesos_terminados / Tiempo_total
+
+================================================================================
+LIMITACIONES Y MEJORAS FUTURAS
+================================================================================
+
+LIMITACIONES ACTUALES:
+    1. Operaciones E/S no se ejecutan realmente
+    2. Un solo procesador (no multiprocesador)
+    3. Paginación simple (no segmentación)
+    4. No hay memoria virtual (swap)
+    5. FIFO puro (no prioridades)
+    6. Límite fijo de 500 ticks
+
+MEJORAS POSIBLES:
+    1. Implementar múltiples algoritmos de planificación:
+        - Round Robin con quantum configurable
+        - Prioridades
+        - Shortest Job First (SJF)
+        - Multilevel Feedback Queue
+    
+    2. Memoria virtual:
+        - Swapping de páginas
+        - Algoritmo de reemplazo de páginas (LRU, FIFO)
+    
+    3. Multiprocesamiento:
+        - Varios CPUs
+        - Balanceo de carga
+    
+    4. Estadísticas detalladas:
+        - Gráficos de Gantt
+        - Métricas completas por proceso
+        - Exportar resultados a CSV
+    
+    5. Interfaz gráfica:
+        - Visualización de estados
+        - Animación de procesos
+        - Gráficos en tiempo real
+    
+    6. Sistemas de archivos:
+        - Simulación de disco
+        - Directorios y archivos
+        - Operaciones de archivo
+    
+    7. Comunicación entre procesos:
+        - Pipes
+        - Shared memory
+        - Message queues
+
+================================================================================
+TROUBLESHOOTING - PROBLEMAS COMUNES
+================================================================================
+
+1. SIMULACIÓN NO TERMINA
+   Síntoma: Bucle infinito en ejecutar_simulacion()
+   Causas:
+       - Proceso con ráfaga muy grande
+       - Límite de ticks muy bajo
+   Solución:
+       - Aumentar ciclo_limite en sistema_operativo.cpp
+       - Verificar valores de ráfaga en procesos.txt
+
+2. MEMORIA NO SE LIBERA
+   Síntoma: Marcos quedan ocupados al terminar
+   Causas:
+       - id_proceso_memoria no se asignó
+       - liberar_memoria() no se llamó
+   Solución:
+       - Verificar asignar_id_proceso_memoria() en planificar_largo_plazo()
+       - Verificar manejar_terminacion() llama liberar_memoria()
+
+3. CPU QUEDA OCUPADA
+   Síntoma: CPU no se libera al terminar proceso
+   Causas:
+       - guardar_y_ceder() no se llamó
+       - proceso_actual no se puso a NULL
+   Solución:
+       - Verificar llamada a guardar_y_ceder() en manejar_terminacion()
+
+4. PROCESOS NO SE CARGAN
+   Síntoma: "Procesos nuevos pendientes: NO"
+   Causas:
+       - Archivo no existe
+       - Formato de archivo incorrecto
+       - Ruta incorrecta
+   Solución:
+       - Verificar nombre de archivo
+       - Verificar formato CSV: "ID, llegada, rafaga, tamaño"
+       - Poner archivo en directorio del ejecutable
+
+5. ERROR DE COMPILACIÓN
+   Síntoma: Errores al compilar
+   Causas:
+       - Falta incluir headers
+       - Incompatibilidad de tipos
+       - Funciones no declaradas
+   Solución:
+       - Compilar con: g++ -std=c++17 -Wall -c src/*.cpp main.cpp -Iinclude
+       - Verificar todos los .h incluidos
+       - Verificar orden de compilación
+
+6. VALIDACIONES NO FUNCIONAN
+   Síntoma: Acepta valores inválidos
+   Causas:
+       - cin.fail() no se verifica
+       - Buffer no se limpia
+   Solución:
+       - Verificar do-while loops en crear_proceso_interactivo()
+       - Verificar cin.clear() y cin.ignore()
+
+================================================================================
+REFERENCIAS Y RECURSOS
+================================================================================
+
+CONCEPTOS DE SISTEMAS OPERATIVOS:
+    - Operating System Concepts (Silberschatz, Galvin, Gagne)
+    - Modern Operating Systems (Andrew Tanenbaum)
+
+ALGORITMOS DE PLANIFICACIÓN:
+    - FIFO/FCFS (First Come First Served)
+    - Round Robin
+    - Priority Scheduling
+    - Multilevel Queue
+
+GESTIÓN DE MEMORIA:
+    - Paginación
+    - Segmentación
+    - Memoria Virtual
+    - TLB (Translation Lookaside Buffer)
+
+SINCRONIZACIÓN:
+    - Semáforos (Dijkstra)
+    - Mutex y Locks
+    - Productor-Consumidor
+    - Monitores
+
+ESTÁNDARES C++:
+    - C++17 Standard
+    - POSIX Threads
+    - C++ Concurrency
+
+================================================================================
+AUTORES Y CRÉDITOS
+================================================================================
+
+Desarrolladores:
+    - Puente Villaroel Gaspar
+    - Moar Agustín
+
+Institución:
+    - [Nombre de la universidad/institución]
+
+Materia:
+    - Sistemas Operativos
+
+Fecha:
+    - Noviembre 2025
+
+Versión:
+    - 2.0 (con FIFO, validaciones, reinicio y liberación de memoria)
+
+Licencia:
+    - Uso académico
+
+================================================================================
+CHANGELOG - HISTORIAL DE VERSIONES
+================================================================================
+
+Versión 2.0 (Noviembre 2025):
+------------------------------
++ Cambio de algoritmo: Round Robin → FIFO
++ Menú interactivo con 6 opciones
++ Interfaz de creación manual de procesos
++ Validaciones exhaustivas en todas las entradas
++ Temporización real con std::chrono (100ms por tick)
++ Opción de reiniciar sistema sin cerrar programa
++ Liberación correcta de memoria al terminar procesos
++ Campo id_proceso_memoria en PCB para tracking
++ Liberación de procesos incompletos si alcanza límite
++ Dispositivos E/S traducidos al español (DISCO/IMPRESORA/RED)
++ Tabla de memoria oculta marcos libres (-1)
++ Comentarios explicativos en todo el código
++ Documentación completa en español
++ Límite aumentado a 500 ticks
++ Mensajes de estado más claros y descriptivos
+
+Versión 1.0 (Octubre 2025):
+---------------------------
++ Implementación inicial con Round Robin
++ Modelo de 5 estados
++ Paginación simple
++ Sincronización con semáforos
++ Cola de listos thread-safe
++ Carga de procesos desde archivo
++ Gestión básica de E/S
+
+================================================================================
+FIN DE LA DOCUMENTACIÓN
+================================================================================
+
+Para más información o reportar problemas:
+- Revisar el código fuente en los archivos .cpp
+- Consultar los headers .h para definiciones
+- Ejecutar el programa y probar las opciones del menú
+- Modificar procesos.txt para diferentes escenarios
+
+¡Gracias por usar DoorOS! 🚀

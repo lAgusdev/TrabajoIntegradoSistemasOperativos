@@ -2,7 +2,7 @@
 
 ColaSincronizada::ColaSincronizada(int capacidad) {
     capacidad_maxima = capacidad;
-    // Inicializamos semáforos:
+    // Inicializamos semï¿½foros:
     // sem_vacios: inicia con TOTAL de capacidad (buffer libre)
     sem_vacios = new Semaforo(capacidad);
     // sem_items: inicia en 0 (no hay nada que consumir al inicio)
@@ -15,41 +15,41 @@ ColaSincronizada::~ColaSincronizada() {
 }
 
 void ColaSincronizada::Aniadir_a_Cola_Listos(PCB* proceso) {
-    // 1. SEMÁFORO: Esperamos que haya lugar (Decrementa vacíos)
-    // Si la cola está llena, esto bloquearía al hilo productor.
+    // 1. SEMï¿½FORO: Esperamos que haya lugar (Decrementa vacï¿½os)
+    // Si la cola estï¿½ llena, esto bloquearï¿½a al hilo productor.
     sem_vacios->wait();
 
-    // 2. EXCLUSIÓN MUTUA: Entramos a la sección crítica
+    // 2. EXCLUSIï¿½N MUTUA: Entramos a la secciï¿½n crï¿½tica
     {
         std::lock_guard<std::mutex> lock(mutex_cola);
         cola_pcbs.push(proceso);
-    } // El mutex se libera automáticamente aquí al salir del scope
+    } // El mutex se libera automï¿½ticamente aquï¿½ al salir del scope
 
-    // 3. SEMÁFORO: Avisamos que hay un nuevo item (Incrementa items)
+    // 3. SEMï¿½FORO: Avisamos que hay un nuevo item (Incrementa items)
     sem_items->signal();
 }
 
 PCB* ColaSincronizada::Retirar_de_Cola_Listos() {
-    // 1. SEMÁFORO: Verificamos si hay items.
-    // Usamos try_wait en lugar de wait porque tu simulación es secuencial.
-    // Si usáramos wait() y la cola estuviera vacía, el programa se congelaría eternamente.
+    // 1. SEMï¿½FORO: Verificamos si hay items.
+    // Usamos try_wait en lugar de wait porque tu simulaciï¿½n es secuencial.
+    // Si usï¿½ramos wait() y la cola estuviera vacï¿½a, el programa se congelarï¿½a eternamente.
     if (!sem_items->try_wait()) {
-        return nullptr; // No había nada para consumir
+        return nullptr; // No habï¿½a nada para consumir
     }
 
     PCB* proceso_retornado = nullptr;
 
-    // 2. EXCLUSIÓN MUTUA: Sección crítica
+    // 2. EXCLUSIï¿½N MUTUA: Secciï¿½n crï¿½tica
     {
         std::lock_guard<std::mutex> lock(mutex_cola);
-        // Doble verificación por seguridad (aunque el semáforo ya nos garantizó acceso)
+        // Doble verificaciï¿½n por seguridad (aunque el semï¿½foro ya nos garantizï¿½ acceso)
         if (!cola_pcbs.empty()) {
             proceso_retornado = cola_pcbs.front();
             cola_pcbs.pop();
         }
     }
 
-    // 3. SEMÁFORO: Avisamos que se liberó un espacio (Incrementa vacíos)
+    // 3. SEMï¿½FORO: Avisamos que se liberï¿½ un espacio (Incrementa vacï¿½os)
     if (proceso_retornado != nullptr) {
         sem_vacios->signal();
     }
@@ -57,6 +57,7 @@ PCB* ColaSincronizada::Retirar_de_Cola_Listos() {
     return proceso_retornado;
 }
 
+// Verifica si la cola estÃ¡ vacÃ­a (thread-safe)
 bool ColaSincronizada::vacia() {
     std::lock_guard<std::mutex> lock(mutex_cola);
     return cola_pcbs.empty();
